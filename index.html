@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<!-- META TAGS -->
+	<!-- ========================================================= -->
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=820">
+	<meta name="format-detection" content="telephone=no">	
+
+	<!-- TITLE -->
+	<!-- ========================================================= -->	
+	<title>Validation</title>
+
+	<!-- FAVICON -->
+	<!-- ========================================================= -->
+	<link rel="shortcut icon" href="">
+
+	<!-- CSS -->
+	<!-- ========================================================= -->	
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap-responsive.min.css" rel="stylesheet">
+	<!-- JQUERY FROM CDN -->
+	<!-- ========================================================= -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <link href="http://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet" type="text/css">
+    <script src="js/validation.js"></script>
+    <script src="js/new.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+
+</head>
+
+<body>
+ <div class="container">
+<div class="row">
+  <div class="span12">
+    <p class="lead">Horizontal form</p>
+    <form class="form-horizontal" id="function" action="" method="post">
+      <div class="control-group">
+        <label class="control-label" for="inputEmail">Email</label>
+        <div class="controls">
+          <input type="text" class="required" id="inputEmail" placeholder="Email">
+        </div>
+      </div>
+      <div class="control-group">
+        <label class="control-label" for="inputPassword">Password</label>
+        <div class="controls">
+          <input type="text" class="required" id="inputPassword" placeholder="Password">
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="controls">
+          <label class="checkbox">
+            <input type="checkbox"> Remember me
+          </label>
+          <button type="submit" class="btn">Sign in</button>
+        </div>
+      </div>
+    </form>
+    </div>
+</div>
+</div>
+<script>
+$(document).on('submit', '#function', function(e){
+    e.preventDefault();
+    if($('#function').validation({lang:'ru', type:'field'}) == 0)
+    {
+        console.log('success')
+    } else{
+        console.log('error')
+    }
+    return false;
+})
+</script>
+</body></html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
