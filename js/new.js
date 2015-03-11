@@ -1,12 +1,15 @@
- $.validOptions = {
+/**
+ * EXEMPELS - options
+ * @lang:'ru'
+ * @type:'field'
+ * @action:'submit'/  {type:'click', on:'button'}
+ * 
+ *  */
+$.validOptions = {
     type: 'field',
     lang: 'en',
     required: '.required',
     action: 'submit',
-    actionsType: ['submit', 'click', 'change', 'select'],
-    watchInputs: true,
-    watchDataMask: false,
-    byPassKeys: [9, 16, 17, 18, 36, 37, 38, 39, 40, 91],
     translation: {
         ru:{
             field:{
@@ -46,36 +49,50 @@
             }
         }
     },
+    
+};
+/*
+ * Not editable options
+ */
+$.serviceOptions = {
+    actionsType: ['submit', 'click', 'change', 'select'],
     criticalError:{
         bad_action:'This action type is not available',
         bad_element:'This element is not avalible',
         bad_form:'This form is not exist',
-        
+        bad_error_type:'This error type is not exist'
     }
-};
-
-$.fn.validation= function(options){
-    if(typeof(options) !== 'undefined'){
+}
+var servise_errors = [];
+$.fn.validation = function(options){
+    if(typeof(options) !== undefined){
         
+        var service_error = [];
         var form = $(this);
         var form_id = $(this).attr('id') ? $(this).attr('id') : undefined;
         var form_class = $(this).attr('class') ? $(this).attr('class') : undefined;
          
-        if(typeof(options.lang) !== 'undefined')
+        if(typeof(options.lang) !== undefined)
         {
             $.validOptions.lang = options.lang;
         }
-        if(typeof(options.action) !== 'undefined')
+        if(typeof(options.action) !== undefined)
         {
             if(options.action !== 'submit')
             {
                 if(typeof(options.action) === 'object')
                 {
-                    if(typeof(options.action.type) !== 'undefined' && $.inArray( options.action.type, $.validOptions.actionsType ) )
+                    if(typeof(options.action.type) !== undefined && $.inArray( options.action.type, $.serviceOptions.actionsType ) == 1 )
                     {
-                        
+                        if(typeof(options.action.on) !== undefined && $(options.action.on).length )
+                        {
+                            $.validOptions.action = options.action;
+                            
+                        }else{
+                            solutions.service_error('bad_element');
+                        }
                     }else{
-                        this.error('')
+                        solutions.service_error('bad_action');
                     }
                 }else{
                     $.validOptions.action = options.action;
@@ -86,7 +103,7 @@ $.fn.validation= function(options){
                 $.validOptions.action = options.action;
             }
         }
-        if(typeof(options.type) !== 'undefined')
+        if(typeof(options.type) !== undefined)
         {
             $.validOptions.type = options.type;
         }
@@ -98,20 +115,29 @@ $.fn.validation= function(options){
 //            fields[i++].obj = $(this);
 //            
 //        })
-        console.log('#' + form_id + ' ' + $.validOptions.required)
+        //console.log('#' + form_id + ' ' + $.validOptions.required)
         $('#' + form_id + ' ' + $.validOptions.required).each(function(){
             fields[i++] = {obj : $(this)};
             
         })
         
-        console.log(fields)
-        /**
-         * @wer
-         * */
-        var error = function()
-        {
-            
-        }
+        //console.log(fields)
     }
     
+};
+var solutions = {
+    /**
+     * SERVICE ERROR 
+     * */
+    service_error:function(key){
+        if($.serviceOptions.criticalError[key] !== undefined)
+        {
+            var mess = 'Error:: '+$.serviceOptions.criticalError[key] + '!!!';
+            servise_errors.push(mess)
+            console.log(mess);
+            return false;
+        }else{
+            this.service_error('bad_error_type');
+        }
+    }
 };
