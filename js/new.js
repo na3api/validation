@@ -61,7 +61,9 @@ $.serviceOptions = {
         bad_element:'This element is not avalible',
         bad_form:'This form is not exist',
         bad_error_type:'This error type is not exist'
-    }
+    },
+    elementClass:['required','no','email','number','pass','pass_again','string'],
+    elementAttribute:['valid-min','valid-max','valid-in']
 }
 var servise_errors = [];
 $.fn.validation = function(options){
@@ -71,23 +73,22 @@ $.fn.validation = function(options){
         var form = $(this);
         var form_id = $(this).attr('id') ? $(this).attr('id') : undefined;
         var form_class = $(this).attr('class') ? $(this).attr('class') : undefined;
-         
+         console.log($.validOptions);
         if(typeof(options.lang) !== undefined)
         {
             $.validOptions.lang = options.lang;
         }
-        if(typeof(options.action) !== undefined)
+        if(typeof(options.action) !== 'undefined')
         {
             if(options.action !== 'submit')
             {
                 if(typeof(options.action) === 'object')
                 {
-                    if(typeof(options.action.type) !== undefined && $.inArray( options.action.type, $.serviceOptions.actionsType ) == 1 )
+                    if(typeof(options.action.type) !== 'undefined' && $.inArray( options.action.type, $.serviceOptions.actionsType ) >= 0 )
                     {
-                        if(typeof(options.action.on) !== undefined && $(options.action.on).length )
+                        if(typeof(options.action.on) !== 'undefined' && $(options.action.on).length )
                         {
-                            $.validOptions.action = options.action;
-                            
+                            $.validOptions.action = {type:options.action, on: $(options.action.on)};    
                         }else{
                             solutions.service_error('bad_element');
                         }
@@ -95,19 +96,28 @@ $.fn.validation = function(options){
                         solutions.service_error('bad_action');
                     }
                 }else{
-                    $.validOptions.action = options.action;
-                }
-                
+                    $.validOptions.action = {type:options.action, on: this };
+                }              
+            }else{                
+                $.validOptions.action = {type:options.action, on: this };
+            }
+        }else{
+            if( typeof($.validOptions.action) !== 'undefined' && $.inArray( $.validOptions.action, $.serviceOptions.actionsType ) >= 0 )
+            {
+                $.validOptions.action = {type : $.validOptions.action, on: this };
             }else{
-                
-                $.validOptions.action = options.action;
+                solutions.service_error('bad_action');
             }
         }
-        if(typeof(options.type) !== undefined)
+        if(typeof(options.type) !== 'undefined')
         {
             $.validOptions.type = options.type;
         }
-        console.log($.validOptions);
+        $(document).on($.validOptions.action.type, $.validOptions.action.on, function(e){
+            e.preventDefault();
+            console.log('action')
+        })
+        //if()
         
         var fields = {};
         var i=0;
@@ -117,11 +127,17 @@ $.fn.validation = function(options){
 //        })
         //console.log('#' + form_id + ' ' + $.validOptions.required)
         $('#' + form_id + ' ' + $.validOptions.required).each(function(){
-            fields[i++] = {obj : $(this)};
-            
+            fields[i++] = this;
+            if(1 == 1)
+            {
+                options.success = function(response)
+                {
+                    return response;
+                }
+            }
         })
         
-        //console.log(fields)
+        console.log(fields)
     }
     
 };

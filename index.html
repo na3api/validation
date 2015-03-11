@@ -60,17 +60,16 @@
 </div>
 </div>
 <script>
-    $('#function').validation({lang:'ru', type:'field', action: {type:'click', on:'button'} });
-$(document).on('submit', '#function', function(e){
-    e.preventDefault();
-    if(1 == 0)
-    {
-        console.log('success')
-    } else{
+$('#function').validation({lang:'ru', 
+    type:'field', 
+    success:function(request){
+        console.log('success');
+    },
+    error:function(request){
         console.log('error')
     }
-    return false;
-})
+});
+
 </script>
 </body></html>
 
