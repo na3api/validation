@@ -3,7 +3,8 @@
  * @lang:'ru'
  * @type:'field'
  * @action:'submit'/  {type:'click', on:'button'}
- * 
+ * @success:function(request)
+ * @error:function(request)
  *  */
 $.validOptions = {
     type: 'field',
@@ -113,29 +114,35 @@ $.fn.validation = function(options){
         {
             $.validOptions.type = options.type;
         }
-        $(document).on($.validOptions.action.type, $.validOptions.action.on, function(e){
-            e.preventDefault();
-            console.log('action')
-        })
-        //if()
-        
+        /**
+         * FIELD LIST
+         * */
         var fields = {};
         var i=0;
+        $('#' + form_id + ' ' + $.validOptions.required).each(function(){
+            fields[i++] = $(this);
+        })
+        $(document).on($.validOptions.action.type, $.validOptions.action.on, function(e){
+            e.preventDefault();
+            for(var el in fields)
+            {
+                console.log(fields[el].val());
+            }
+            if(typeof(options.success) === 'function'){
+                //success request 
+                solutions.success($.validOptions, function(request){
+                    //options.success('122');
+                });
+               
+            }
+        })       
+        
 //        form.childrens($.validOptions.required).each(function(){
 //            fields[i++].obj = $(this);
 //            
 //        })
         //console.log('#' + form_id + ' ' + $.validOptions.required)
-        $('#' + form_id + ' ' + $.validOptions.required).each(function(){
-            fields[i++] = this;
-            if(1 == 1)
-            {
-                options.success = function(response)
-                {
-                    return response;
-                }
-            }
-        })
+
         
         console.log(fields)
     }
@@ -155,5 +162,9 @@ var solutions = {
         }else{
             this.service_error('bad_error_type');
         }
-    }
+    },
+    success: function(arg, callback ) {
+        return callback(this);
+    },
+    
 };

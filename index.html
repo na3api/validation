@@ -60,10 +60,11 @@
 </div>
 </div>
 <script>
-$('#function').validation({lang:'ru', 
+$('#function').validation({
+    lang:'ru', 
     type:'field', 
     success:function(request){
-        console.log('success');
+        console.log(request);
     },
     error:function(request){
         console.log('error')
