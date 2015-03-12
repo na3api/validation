@@ -118,9 +118,21 @@ $.fn.validation = function(options){
          * FIELD LIST
          * */
         var fields = {};
-        var i=0;
+        var count = 0;
         $('#' + form_id + ' ' + $.validOptions.required).each(function(){
-            fields[i++] = $(this);
+            fields[count] = {object:$(this)};
+            for(var i in $.serviceOptions.elementClass)
+            {
+                var c = 0;
+                fields[count].class = {};
+                if($(this).hasClass($.serviceOptions.elementClass[i]))
+                {
+                    console.log({ c: $.serviceOptions.elementClass[i] })
+                    fields[count].class[c] = $.serviceOptions.elementClass[i] ;
+                    c++;
+                }
+            }
+            count++;
         })
         $(document).on($.validOptions.action.type, $.validOptions.action.on, function(e){
             e.preventDefault();
