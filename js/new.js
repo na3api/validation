@@ -136,7 +136,7 @@ $.fn.validation = function(options) {
             {
                 if ($(this).attr($.serviceOptions.elementAttribute[i]))
                 {
-                    fields[count].attributes[attr_count] = $.serviceOptions.elementAttribute[i];
+                    fields[count].attribute[attr_count] = $.serviceOptions.elementAttribute[i];
                     attr_count++;
                 }
             }
@@ -153,7 +153,6 @@ $.fn.validation = function(options) {
                 if (!object.attr('disabled'))
                 {
                     var value = object.val();
-
                     if (object.hasClass('error'))
                     {
                         object.removeClass('error').val('');
@@ -180,7 +179,7 @@ $.fn.validation = function(options) {
                             setError($(this), 'required');
                         } else {
                             error = 1;
-                            setError($(this), 'required');
+                            s.setError(object, 'required');
                         }
                     } else {
                         if (count)
@@ -253,8 +252,8 @@ $.fn.validation = function(options) {
                         }
                     }
                 }
-                var value = fields[el].val();
-                console.log(fields[el].val());
+                //var value = fields[el].val();
+               // console.log(fields[el].val());
             }
             if (typeof (options.success) === 'function') {
                 //success request 
@@ -277,6 +276,7 @@ $.fn.validation = function(options) {
 
 };
 var solutions = s = {
+    errorMess:{},
     /**
      * SERVICE ERROR 
      * */
@@ -295,6 +295,20 @@ var solutions = s = {
         return callback(this);
     },
     inArray: function(elem, arr) {
+        var len;
+        if ( arr ) {
+            len = arr.length;
+            var i = 0;
+            for ( ; i < len; i++ ) {
+                // Skip accessing in sparse arrays
+                if ( i in arr && arr[ i ] === elem ) {
+                        return true;
+                }
+            }
+        }
+        return false;
+    },
+    inKeys: function(elem, arr) {
         if(arr[elem] !== 'undefined'){
             return true;
         }else{
@@ -309,5 +323,22 @@ var solutions = s = {
         }else{
             return value.replace(/\s+/g, '').replace(/&nbsp;/gi, '').length;                   
         }
+    },
+    /**
+     * SET ERROR 
+     * */
+    setError:function( element, error, num)
+    {
+        if(typeof(num)==='undefined') num = '';
+
+        var message = $.validOptions.translation[$.validOptions.lang][$.validOptions.type][error].replace("{0}", num) ;
+        if($.validOptions.type == 'field')
+        {   
+            element.addClass('error').val(message);
+        }else{
+            this.errorMess += '<li>'+message.replace("{f}", (element.attr('data-title') ? element.attr('data-title'): element.attr('name')))+'</li>';
+        }
+
+        console.log(error)
     }
 };
