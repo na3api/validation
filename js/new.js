@@ -148,7 +148,7 @@ $.fn.validation = function(options) {
             {
                 var object = fields[el].object;
                 var classes = fields[el].class;
-                var attributes = fields[el].attributes;
+                var attributes = fields[el].attribute;
                 //if element not disabled
                 if (!object.attr('disabled'))
                 {
@@ -171,80 +171,72 @@ $.fn.validation = function(options) {
                     }
                     if (!count && !s.inArray('no', classes))
                     {
-                        //////////////////////////end//////////////////
                         if (s.inArray('selectbox', classes))
                         {
-                            var sb = $(this).attr('sb');
-                            $('#sbHolder_' + sb).addClass('error');
-                            setError($(this), 'required');
+                            //var sb = $(this).attr('sb');
+                            //$('#sbHolder_' + sb).addClass('error');
+                            //setError($(this), 'required');
+                            s.setError(object, 'required');
                         } else {
-                            error = 1;
                             s.setError(object, 'required');
                         }
                     } else {
                         if (count)
                         {
                             /*string*/
-                            if ($(this).hasClass('string')) {
-                                if (!ValidateString(value) && !$(this).hasClass('email')) {
-                                    error = 1;
-                                    setError($(this), 'special_char');
+                            if (s.inArray('string', classes)) {
+                                if (!ValidateString(value) && !s.inArray('email', classes)) {
+                                    s.setError(object, 'special_char');
                                 }
                             }
-
                             /*pass AND pass2*/
-                            if ($(this).hasClass('pass2')) {
-                                if (value != $(this).siblings('.pass').val()) {
-                                    error = 1;
-                                    setError($(this), 'pass');
+                            if (s.inArray('pass_again', classes)) {
+                                if (value != object.siblings('.pass').val()) {
+                                    s.setError(object, 'pass');
                                 }
                             }
                             /*email*/
-                            if ($(this).hasClass('email')) {
-                                if (!ValidateEmail(value)) {
-                                    error = 1;
-                                    setError($(this), 'email');
+                                console.log(classes)    
+                            if (s.inArray('email', classes)) {
+                                if (!s.validateEmail(value)) {
+                                    s.setError(object, 'email');
                                 }
                             }
                             /*number*/
-                            if ($(this).hasClass('number')) {
-                                if (!IsNumeric(value)) {
-                                    error = 1;
-                                    setError($(this), 'number');
+                            if (s.inArray('number', classes)) {
+                                if (!s.IsNumeric(value)) {
+                                    s.setError(object, 'number');
                                 } else {
-                                    value = parseFloat($(this).val())
+                                    value = parseFloat(value)
                                     /*data-in*/
-                                    if ($(this).attr('data-in'))
+                                    if (s.inArray('data-in',attributes))
                                     {
-                                        var more = $(this).attr('data-in').split('-');
+                                        var more = object.attr('data-in').split('-');
                                         var min = parseFloat(more[0]);
                                         var max = parseFloat(more[1]);
                                         if (value < min || value > max)
                                         {
-                                            error = 1;
-                                            setError($(this), 'not_in', $(this).attr('data-in'));
+                                            s.setError(object, 'not_in', object.attr('data-in'));
                                         }
                                     }
                                 }
                             }
                             /*data-min*/
-                            if ($(this).attr('data-min'))
+                            if (s.inArray('data-min', attributes))
                             {
-                                var min = $(this).attr('data-min');
+                                var min = object.attr('data-min');
                                 if (min > count_symbols)
                                 {
-                                    error = 1;
-                                    setError($(this), 'min', min);
+                                    s.setError(object, 'min', min);
                                 }
                             }
                             /*data-max*/
-                            if ($(this).attr('data-max'))
+                            if (s.inArray('data-max', attributes))
                             {
-                                var max = $(this).attr('data-max');
+                                var max = object.attr('data-max');
                                 if (max < count_symbols)
                                 {
-                                    error = 1;
-                                    setError($(this), 'max', max);
+                                    s.setError(object, 'max', max);
                                 }
 
                             }
@@ -276,7 +268,8 @@ $.fn.validation = function(options) {
 
 };
 var solutions = s = {
-    errorMess:{},
+    isError:0,
+    errorMess:'',
     /**
      * SERVICE ERROR 
      * */
@@ -295,11 +288,8 @@ var solutions = s = {
         return callback(this);
     },
     inArray: function(elem, arr) {
-        var len;
         if ( arr ) {
-            len = arr.length;
-            var i = 0;
-            for ( ; i < len; i++ ) {
+            for (var i in arr ) {
                 // Skip accessing in sparse arrays
                 if ( i in arr && arr[ i ] === elem ) {
                         return true;
@@ -338,7 +328,61 @@ var solutions = s = {
         }else{
             this.errorMess += '<li>'+message.replace("{f}", (element.attr('data-title') ? element.attr('data-title'): element.attr('name')))+'</li>';
         }
-
-        console.log(error)
+        this.error = 1;
+        console.log(this.error, this.errorMess)
+    },
+    /*
+     *email validation 
+     */
+    validateEmail:function(email)
+    {
+        if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email))  
+        {  
+            return (true)  
+        }else{
+            return (false)          
+        }  
+    },
+    /*
+     * 
+     */
+    validateString:function(value)   
+    {  
+        if(/^[a-zA-Zа-яіїєґА-ЯІЇЄҐ0-9\.\s]+$/.test(value))
+        {  
+            return (true)  
+        } else{
+            return (false)             
+        } 
+    },
+    /*
+     * 
+     */
+    IsNumeric:function(number) {
+        return !isNaN(parseFloat(number)) && isFinite(number);
+    },
+    /*
+     *  remove not number sumbols 
+     */
+    notNumber:function (input) {
+        input.val(input.val().replace(/[^\d]/g, ''));
     }
-};
+}; 
+/*
+ * Remove class error from elements
+ */
+$(document).on('click focus change', $.validOptions.required , function(){
+    if($(this).hasClass('error'))
+    {
+        if($(this).hasClass('selectbox'))
+        {
+            $('#sbHolder_'+$(this).attr('sb')).removeClass('error');
+            $(this).removeClass('error');                
+        }else{
+            $(this).removeClass('error').val('');                
+        }
+    }
+})
+$(document).on('keyup change', $.validOptions.required+'.number',function(){
+    return notNumber($(this));
+})
