@@ -13,6 +13,10 @@ $.validOptions = {
     action: 'submit',
     translation: {
         ru: {
+            required: 'Поле не должно быть пустым.',
+            email: 'Введите корректный email.',
+            min: 'Значение поля должно быть больше {0}.',
+            max: 'Значение поля должно быть меньше {0}.',
             field: {
                 required: 'Поле не должно быть пустым.',
                 email: 'Введите корректный email.',
@@ -27,6 +31,14 @@ $.validOptions = {
             }
         },
         en: {
+            required: 'This field is required.',
+            email: 'Please enter a valid email address.',
+            number: 'Please enter a valid number.',
+            not_in: 'Please enter number in {0} ',
+            min: 'Please enter at least {0} characters.',
+            max: 'Please enter no more than {0} characters.',
+            pass: 'Error_pass',
+            special_char: 'Enter without special characters.',
             field: {
                 required: 'This field is required.',
                 email: 'Please enter a valid email address.',
@@ -191,7 +203,7 @@ $.fn.validation = function(options) {
                             }
                             /*pass AND pass2*/
                             if (s.inArray('pass_again', classes)) {
-                                if (value != object.siblings('.pass').val()) {
+                                if (value != object.parents('form').find('.pass').val()) {
                                     s.setError(object, 'pass');
                                 }
                             }
@@ -321,11 +333,11 @@ var solutions = s = {
     {
         if(typeof(num)==='undefined') num = '';
 
-        var message = $.validOptions.translation[$.validOptions.lang][$.validOptions.type][error].replace("{0}", num) ;
+        var message = $.validOptions.translation[$.validOptions.lang][error].replace("{0}", num) ;
         if($.validOptions.type == 'field')
         {   
             element.addClass('error').val(message);
-        }else{
+        }else if($.validOptions.type == 'popup'){
             this.errorMess += '<li>'+message.replace("{f}", (element.attr('data-title') ? element.attr('data-title'): element.attr('name')))+'</li>';
         }
         this.error = 1;
