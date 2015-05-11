@@ -12,23 +12,17 @@ $.validOptions = {
     required: '.required',
     action: 'submit',
     translation: {
+        ua: {
+            required: 'Поле не должно быть пустым.',
+            email: 'Введите корректный email.',
+            min: 'Значение поля должно быть больше {0}.',
+            max: 'Значение поля должно быть меньше {0}.',
+        },
         ru: {
             required: 'Поле не должно быть пустым.',
             email: 'Введите корректный email.',
             min: 'Значение поля должно быть больше {0}.',
             max: 'Значение поля должно быть меньше {0}.',
-            field: {
-                required: 'Поле не должно быть пустым.',
-                email: 'Введите корректный email.',
-                min: 'Значение поля должно быть больше {0}.',
-                max: 'Значение поля должно быть меньше {0}.'
-            },
-            popup: {
-                required: 'Поле не должно быть пустым.',
-                email: 'Введите корректный email.',
-                min: 'Значение поля должно быть больше {0}.',
-                max: 'Значение поля должно быть меньше {0}.'
-            }
         },
         en: {
             required: 'This field is required.',
@@ -39,26 +33,6 @@ $.validOptions = {
             max: 'Please enter no more than {0} characters.',
             pass: 'Error_pass',
             special_char: 'Enter without special characters.',
-            field: {
-                required: 'This field is required.',
-                email: 'Please enter a valid email address.',
-                number: 'Please enter a valid number.',
-                not_in: 'Please enter number in {0} ',
-                min: 'Please enter at least {0} characters.',
-                max: 'Please enter no more than {0} characters.',
-                pass: 'Error_pass',
-                special_char: 'Enter without special characters.',
-            },
-            popup: {
-                required: '<b>{f}</b>. Field  is required.',
-                email: '<b>{f}</b>. Please enter a valid email address.',
-                number: '<b>{f}</b>. Please enter a valid number.',
-                not_in: '<b>{f}</b>. Please enter number in {0} ',
-                min: '<b>{f}</b>. Please enter at least {0} characters.',
-                max: '<b>{f}</b>. Please enter no more than {0} characters.',
-                special_char: '<b>{f}</b>. Enter without special characters.',
-                pass: '<b>Password</b>. New password and repeated new password did not match.'
-            }
         }
     },
 };
@@ -66,6 +40,7 @@ $.validOptions = {
  * Not editable options
  */
 $.serviceOptions = {
+    type: ['field', 'popup', 'underfield'],
     actionsType: ['submit', 'click', 'change', 'select'],
     criticalError: {
         bad_action: 'This action type is not available',
@@ -84,7 +59,7 @@ $.fn.validation = function(options) {
         var form = $(this);
         var form_id = $(this).attr('id') ? $(this).attr('id') : undefined;
         var form_class = $(this).attr('class') ? $(this).attr('class') : undefined;
-        console.log($.validOptions);
+        //console.log($.validOptions);
         if (typeof (options.lang) !== undefined)
         {
             $.validOptions.lang = options.lang;
@@ -133,7 +108,7 @@ $.fn.validation = function(options) {
         {
             fields[count] = {object: $(this), class: {}, attribute: {}};
             var class_count = 0,
-                    attr_count = 0;
+            attr_count = 0;
             //class collection
             for (var i in $.serviceOptions.elementClass)
             {
@@ -164,11 +139,11 @@ $.fn.validation = function(options) {
                 //if element not disabled
                 if (!object.attr('disabled'))
                 {
-                    var value = object.val();
                     if (object.hasClass('error'))
                     {
-                        object.removeClass('error').val('');
+                        object.removeClass('error').val('').siblings('.message').remove();
                     }
+                    var value = object.val();
                     if (value == '0')
                     {
                         value = null;
@@ -181,13 +156,11 @@ $.fn.validation = function(options) {
                     } else {
                         var count = 0;
                     }
+                    console.log(count);
                     if (!count && !s.inArray('no', classes))
                     {
                         if (s.inArray('selectbox', classes))
                         {
-                            //var sb = $(this).attr('sb');
-                            //$('#sbHolder_' + sb).addClass('error');
-                            //setError($(this), 'required');
                             s.setError(object, 'required');
                         } else {
                             s.setError(object, 'required');
@@ -208,7 +181,7 @@ $.fn.validation = function(options) {
                                 }
                             }
                             /*email*/
-                                console.log(classes)    
+                                //console.log(classes)    
                             if (s.inArray('email', classes)) {
                                 if (!s.validateEmail(value)) {
                                     s.setError(object, 'email');
@@ -275,7 +248,7 @@ $.fn.validation = function(options) {
         //console.log('#' + form_id + ' ' + $.validOptions.required)
 
 
-        console.log(fields)
+        //console.log(fields)
     }
 
 };
@@ -290,7 +263,6 @@ var solutions = s = {
         {
             var mess = 'Error:: ' + $.serviceOptions.criticalError[key] + '!!!';
             servise_errors.push(mess)
-            console.log(mess);
             return false;
         } else {
             this.service_error('bad_error_type');
@@ -340,8 +312,10 @@ var solutions = s = {
         }else if($.validOptions.type == 'popup'){
             this.errorMess += '<li>'+message.replace("{f}", (element.attr('data-title') ? element.attr('data-title'): element.attr('name')))+'</li>';
         }
+        else if($.validOptions.type == 'underfield'){
+            element.addClass('error').after( '<label class="message">'+message.replace("{f}", (element.attr('data-title') ? element.attr('data-title'): element.attr('name')))+'</label>');
+        }
         this.error = 1;
-        console.log(this.error, this.errorMess)
     },
     /*
      *email validation 
@@ -389,9 +363,10 @@ $(document).on('click focus change', $.validOptions.required , function(){
         if($(this).hasClass('selectbox'))
         {
             $('#sbHolder_'+$(this).attr('sb')).removeClass('error');
-            $(this).removeClass('error');                
+            $(this).removeClass('error');       
+            
         }else{
-            $(this).removeClass('error').val('');                
+            $(this).removeClass('error').val('').siblings('.message').remove();      
         }
     }
 })
