@@ -12,7 +12,7 @@
  *  
  * @attr data-ajax: "{"url":"/check_card_active", "data": {"card_num": $('#card_num').val()}}"
  *       server response format: (false){error: "Error message"}
- * @attr data-file: "{"formats":"jpg,bmp,png", "max_size":"5150000", "min_size":"100000"}" //size in bytes 
+ * @attr data-file: "{"formats":"jpg,bmp,png", "max_size":"5", "min_size":"0.1"}" //size in Mb 
  *       
  *       
  *       */
@@ -21,13 +21,13 @@ $.validOptions = {
     lang: 'en',
     action: 'submit',
     elementClass: {
-        required: 'wpcf7-validates-as-required',
+        required: 'required',
         no: 'no',
-        email: 'wpcf7-email',
+        email: 'email',
         number: 'number',
         pass: 'pass',
         pass_again: 'pass_again',
-        string: 'wpcf7-text',
+        string: 'string',
         phone: 'phone-valid',
         site: 'site',
         selectbox: 'selectbox'
@@ -73,12 +73,13 @@ $.validOptions = {
             file_max_size: 'Must be more than {0} Mb',
         }
     },
+    errorContainer: "<label class=\"message\">"
 };
 /*
  * Not editable options
  */
 $.serviceOptions = {
-    errorClass:'error',
+    errorClass: 'error',
     type: ['field', 'popup', 'underfield'],
     actionsType: ['submit', 'click', 'change', 'select'],
     criticalError: {
@@ -89,7 +90,7 @@ $.serviceOptions = {
         havent_translation: 'You havent translate for this field error',
         bad_json_format: 'Json format is not valid',
     },
-    elementAttribute: { min:'data_min', max:'data_max', in:'data_in', ajax:'data_ajax', file:'data_file'}
+    elementAttribute: {min: 'data-min', max: 'data-max', in: 'data-in', ajax: 'data-ajax', file: 'data-file'},
 }
 var servise_errors = [];
 
@@ -151,7 +152,6 @@ $.fn.validation = function (options) {
             var class_count = 0,
                     attr_count = 0;
             //class collection
-
             for (var i in $.validOptions.elementClass)
             {
                 if ($(this).hasClass($.validOptions.elementClass[i]))
@@ -170,6 +170,13 @@ $.fn.validation = function (options) {
                 }
             }
             count++;
+            if ($(this).attr('type') == 'file')
+            {
+                $(this).on('change', function () {
+                    $(this).removeClass($.serviceOptions.errorClass).siblings('.message').remove();
+                    s.fileValidation($(this))
+                })
+            }
         })
         $(document).on($.validOptions.action.type, '#' + $.validOptions.action.on.attr('id'), function (e) {
             if ($(this).hasClass('no_valid'))
@@ -289,34 +296,10 @@ $.fn.validation = function (options) {
                                     }
 
                                 }
-                                /*data-ajax*/
-
+                                /*data-file*/
                                 if (s.inArray($.serviceOptions.elementAttribute.file, attributes))
                                 {
-                                    var parse_json;
-                                    if (parse_json = s.parseJson(object.attr($.serviceOptions.elementAttribute.file)))
-                                    {
-                                        console.log(parse_json)
-                                        var formates = typeof (parse_json.formates) !== 'undefined' ? parse_json.formates.split(',') : false
-                                        var min_size = typeof (parse_json.min_size) !== 'undefined' ? parse_json.min_size : false
-                                        var max_size = typeof (parse_json.max_size) !== 'undefined' ? parse_json.max_size : false
-                                        var file = s.getFile(object);
-                                        if(formates && !s.inArray(file.format, formates))
-                                        {
-                                            s.setError(object, 'file_format');
-                                        }else{
-                                            if(min_size && min_size > file.size )
-                                            {
-                                                s.setError(object, 'file_max_size', min_size/1024/1024);                                                    
-                                            }
-                                            if(max_size && max_size < file.size )
-                                            {
-                                                s.setError(object, 'file_min_size',max_size/1024/1024);                                                    
-                                            }
-                                                
-                                        }
-                                        console.log(file)
-                                    }
+                                    s.fileValidation(object)
                                 }
                                 /*data-ajax*/
                                 if (!object.hasClass($.serviceOptions.errorClass))
@@ -361,7 +344,7 @@ $.fn.validation = function (options) {
                     });
 
                 } else {
-                    s.scrollToElement('.'+$.serviceOptions.errorClass+':first');
+                    s.scrollToElement('.' + $.serviceOptions.errorClass + ':first');
                 }
             }
         })
@@ -426,14 +409,14 @@ var solutions = s = {
         if ($.validOptions.translation[$.validOptions.lang][error])
         {
             var message = $.validOptions.translation[$.validOptions.lang][error].replace("{0}", num);
-            if ($.validOptions.type == 'field')
+            if ($.validOptions.type == 'field' && element.attr('type') != 'file')
             {
                 element.addClass($.serviceOptions.errorClass).val(message);
             } else if ($.validOptions.type == 'popup') {
                 this.errorMess += '<li>' + message.replace("{f}", (element.attr('data-title') ? element.attr('data-title') : element.attr('name'))) + '</li>';
             }
-            else if ($.validOptions.type == 'underfield') {
-                element.addClass($.serviceOptions.errorClass).after('<label class="message">' + message.replace("{f}", (element.attr('data-title') ? element.attr('data-title') : element.attr('name'))) + '</label>');
+            else if ($.validOptions.type == 'underfield' || (element.attr('type') == 'file' && $.validOptions.type == 'field')) {
+                element.addClass($.serviceOptions.errorClass).after($.validOptions.errorContainer + message.replace("{f}", (element.attr('data-title') ? element.attr('data-title') : element.attr('name'))));
             }
             this.isError = 1;
         } else {
@@ -530,18 +513,57 @@ var solutions = s = {
      */
     getFile: function (object)
     {
-        var file_attributes = {}
-        file_attributes['name'] = object.val().split('\\').pop();
-        file_attributes['format'] =  object[0].files[0].name.split('.').pop().toLowerCase();
-        file_attributes['size'] =  object[0].files[0].size;
-        return file_attributes;
+        if (object.val())
+        {
+            var file_attributes = {}
+            file_attributes['name'] = object.val().split('\\').pop();
+            file_attributes['format'] = object[0].files[0].name.split('.').pop().toLowerCase();
+            file_attributes['size'] = object[0].files[0].size;
+            return file_attributes;
+        } else {
+            return false;
+        }
+    },
+    /*
+     * get file attributes
+     */
+    fileValidation: function (object)
+    {
+        var parse_json;
+        if (parse_json = this.parseJson(object.attr($.serviceOptions.elementAttribute.file)))
+        {
+            var formats = typeof (parse_json.formats) !== 'undefined' ? parse_json.formats.split(',') : false
+            var min_size = typeof (parse_json.min_size) !== 'undefined' ? parse_json.min_size : false
+            var max_size = typeof (parse_json.max_size) !== 'undefined' ? parse_json.max_size : false
+            var name_container = typeof (parse_json.name) !== 'undefined' ? parse_json.name : false
+            if (file = this.getFile(object))
+            {
+                if (formats && !this.inArray(file.format, formats))
+                {
+                    this.setError(object, 'file_format');
+                } else {
+                    if (min_size && (min_size * 1024 * 1024) > file.size)
+                    {
+                        this.setError(object, 'file_max_size', min_size);
+                    }
+                    if (max_size && (max_size * 1024 * 1024) < file.size)
+                    {
+                        this.setError(object, 'file_min_size', max_size);
+                    }
+                }
+                if (!object.hasClass($.serviceOptions.errorClass) && name_container)
+                {
+                    $(name_container).text(file.name).val(file.name)
+                }
+            }
+        }
     }
 };
 /*
  * Remove class error from elements
  */
 $(document).on('click focus change', '.' + $.validOptions.elementClass.required, function () {
-    if ($(this).hasClass($.serviceOptions.errorClass))
+    if ($(this).hasClass($.serviceOptions.errorClass) && $(this).attr('type') != 'file')
     {
         if ($(this).hasClass('selectbox'))
         {
@@ -553,7 +575,13 @@ $(document).on('click focus change', '.' + $.validOptions.elementClass.required,
             {
                 $(this).removeClass($.serviceOptions.errorClass).val('').siblings('.message').remove();
             } else {
-                $(this).removeClass($.serviceOptions.errorClass).siblings('.message').remove();
+                if ($.validOptions.type == 'field')
+                {
+                    $(this).removeClass($.serviceOptions.errorClass).val('');
+                } else if ($.validOptions.type == 'underfield')
+                {
+                    $(this).removeClass($.serviceOptions.errorClass).siblings('.message').remove();
+                }
 
             }
         }
