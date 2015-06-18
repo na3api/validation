@@ -73,7 +73,8 @@ $.validOptions = {
             file_max_size: 'Must be more than {0} Mb',
         }
     },
-    errorContainer: "<label class=\"message\">"
+    errorContainer: "<label class=\"message\">",
+    imagePrevClass: "prev_img",
 };
 /*
  * Not editable options
@@ -90,6 +91,7 @@ $.serviceOptions = {
         havent_translation: 'You havent translate for this field error',
         bad_json_format: 'Json format is not valid',
     },
+    validPrevImgClass: 'valid_prev_img',
     elementAttribute: {min: 'data-min', max: 'data-max', in: 'data-in', ajax: 'data-ajax', file: 'data-file'},
 }
 var servise_errors = [];
@@ -513,13 +515,15 @@ var solutions = s = {
      */
     getFile: function (object)
     {
-        if (object.val())
+        if (object.val() && object[0])
         {
             var file_attributes = {}
             file_attributes['name'] = object.val().split('\\').pop();
             file_attributes['format'] = object[0].files[0].name.split('.').pop().toLowerCase();
             file_attributes['size'] = object[0].files[0].size;
+
             return file_attributes;
+
         } else {
             return false;
         }
@@ -536,6 +540,7 @@ var solutions = s = {
             var min_size = typeof (parse_json.min_size) !== 'undefined' ? parse_json.min_size : false
             var max_size = typeof (parse_json.max_size) !== 'undefined' ? parse_json.max_size : false
             var name_container = typeof (parse_json.name) !== 'undefined' ? parse_json.name : false
+            var prev = typeof (parse_json.preview) !== 'undefined' ? parse_json.preview : false
             if (file = this.getFile(object))
             {
                 if (formats && !this.inArray(file.format, formats))
@@ -551,12 +556,46 @@ var solutions = s = {
                         this.setError(object, 'file_min_size', max_size);
                     }
                 }
-                if (!object.hasClass($.serviceOptions.errorClass) && name_container)
+                if (!object.hasClass($.serviceOptions.errorClass))
                 {
-                    $(name_container).text(file.name).val(file.name)
+                    if (name_container)
+                    {
+                        $.validOptions.old_file_name = $(name_container).text().length ? $(name_container).text() : $(name_container).val();
+                        $(name_container).text(file.name).val(file.name)
+                    }
+
+                    if (prev)
+                    {
+                        var reader = new FileReader();
+                        reader.readAsDataURL(object[0].files[0]);
+                        reader.onload = function (e) {
+                            if (!$(prev).length)
+                            {
+                                if (!object.siblings('.' + $.validOptions.imagePrevClass).length)
+                                {
+                                    object.after('<img class="' + $.validOptions.imagePrevClass + ' ' + $.serviceOptions.validPrevImgClass + '" src="' + e.target.result + '">');
+                                } else {
+                                    object.siblings('.' + $.validOptions.imagePrevClass).addClass($.serviceOptions.validPrevImgClass).attr("src", e.target.result).show()
+                                }
+                            } else {
+                                $(prev).attr("src", e.target.result).show()
+                            }
+                        }
+                    }
+                } else {
+                    s.clearPreview(object, name_container)
                 }
+            } else {
+                s.clearPreview(object, name_container)
             }
         }
+    },
+    clearPreview: function (object, name_container) {
+        if (name_container && $.validOptions.old_file_name)
+        {
+            $(name_container).text($.validOptions.old_file_name).val($.validOptions.old_file_name)
+        }
+        $(object).siblings('.' + $.validOptions.imagePrevClass).removeAttr("src").hide();
     }
 };
 /*

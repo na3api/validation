@@ -60,3 +60,6 @@ button.close {
 input.error{
     color: red;
 }
+.prev_img{
+    width: 300px;
+}
