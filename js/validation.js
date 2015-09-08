@@ -1,254 +1,710 @@
+/**
+ * Author Nazar Shershin
+ * Version 2.0
+ * 2015
+ * 
+ * EXEMPELS - options
+ * @lang:'ru'
+ * @type:'field','underfield','popup'
+ * @action:'submit'/  {type:'click', on:'button'}
+ * @success:function(request)
+ * @error:function(request)
+ *  
+ * @attr data-ajax: "{"url":"/check_card_active", "data": {"card_num": $('#card_num').val()}}"
+ *       server response format: (false){error: "Error message"}
+ * @attr data-file: "{"formats":"jpg,bmp,png", "max_size":"5", "min_size":"0.1"}" //size in Mb 
+ *       
+ *       
+ *       */
+$.validOptions = {
+    type: 'field',
+    lang: 'ru',
+    action: 'submit',
+    scroll: false,
+    elementClass: {
+        required: 'required',
+        no: 'no',
+        email: 'email',
+        number: 'number',
+        pass: 'pass',
+        pass_again: 'pass_again',
+        string: 'string',
+        phone: 'phone',
+        site: 'site',
+        selectbox: 'selectbox'
+    },
+    numberFormat: 3,
+    translation: {
+        ua: {
+            required: 'Поле не должно быть пустым.',
+            email: 'Введите корректный email.',
+            min: 'Значение поля должно быть больше {0}.',
+            max: 'Значение поля должно быть меньше {0}.',
+        },
+        ru: {
+            required: 'Не может быть пустым',
+            email: 'имеет неверное значение',
+            string: 'может включать только буквы, пробелы и символ "-"',
+            min: 'Значение поля должно быть больше {0}',
+            max: 'Значение поля должно быть меньше {0}',
+            number: 'может включать только цифры',
+            pass: 'Пароль не совпадает с подтверждением',
+            ajax: '{0}',
+            phone: 'Поле имеет неверный формат',
+            site: 'имеет неверное значение, www.example.com',
+            special_char: 'Enter without special characters.',
+            file_format: 'Неверный формат файла',
+            file_min_size: 'Должен быть меньше чем {0} Mb',
+            file_max_size: 'Должен быть больше чем {0} Mb',
+        },
+        en: {
+            required: 'can\'t be blank',
+            string: 'can only include letters, spaces and character "-"',
+            phone: 'The "Telephone" has an invalid format',
+            email: 'is invalid',
+            number: 'please enter a valid number',
+            not_in: 'please enter number in {0} ',
+            min: 'is too short (minimum is {0} characters)',
+            max: 'is too long (maximum is {0} characters)',
+            ajax: '{0}',
+            pass: 'Password not fit confirmation',
+            special_char: 'Enter without special characters.',
+            site: 'is invalid, www.example.com',
+            file_format: 'Wrong file format',
+            file_min_size: 'Must be less than {0} Mb',
+            file_max_size: 'Must be more than {0} Mb',
+        }
+    },
+    errorContainer: "<label class=\"message\">",
+    imagePrevClass: "prev_img",
+};
 /*
- * * * Classes * * * 
- * @param - form identefication
- * @option - required
- * @option - email
- * @option - number
- * @option - data-min
- * @option - data-max
- * @option - pass
- * @option - pass2
- * @option - string (without special char)
+ * Not editable options
  */
-var type = '';
-var errorMess;
-function setError(t, error, num)
-{
-    if(typeof(num)==='undefined') num = '';
-
-    if(type == 'field')
-    {   
-        var message = errors('en')[error].replace("{0}", num) ;
-        t.addClass('error').val(message);
-    }else{
-        var message = errors2('en')[error].replace("{0}", num) ;
-        errorMess += '<li>'+message.replace("{f}", (t.attr('data-title') ? t.attr('data-title'): t.attr('name')))+'</li>';
-    }
-
-
-} 
-/*clear form*/
-function clear_form(form)
-{
-    $(form+' .required').each(function(){
-        $(this).val('');
-    })
+$.serviceOptions = {
+    errorClass: 'error',
+    type: ['field', 'popup', 'underfield'],
+    actionsType: ['submit', 'click', 'change', 'select'],
+    criticalError: {
+        bad_action: 'This action type is not available',
+        bad_element: 'This element is not avalible',
+        bad_form: 'This form is not exist',
+        bad_error_type: 'This error type is not exist',
+        havent_translation: 'You havent translate for this field error',
+        bad_json_format: 'Json format is not valid',
+    },
+    validPrevImgClass: 'valid_prev_img',
+    elementAttribute: {min: 'data-min', max: 'data-max', in: 'data-in', ajax: 'data-ajax', file: 'data-file'},
 }
-/*recicle validation*/
-function validation(form, t)
+$.formsOptions = {};
+var current_id = 0;
+var servise_errors = [];
+$.fn.clear_form = function () {
+    $(this).find('input:not(.no_clear)').val('');
+}
+$.fn.validation = function (options) 
 {
-    
-    errorMess = '<ul>';
-    if(typeof(t)==='undefined'){
-        type = 'field';
-    }else{
-        type = t;
-    }
-    var error = 0;
-    $(form+' .required').each(function(){
-        if(!$(this).attr('disabled'))
-        {            
-            if($(this).hasClass('error'))
+    console.log(options);
+    if (typeof (options) != undefined) {
+        var service_error = [];
+        var form = $(this);
+        var form_id = $(this).attr('id') ? $(this).attr('id') : undefined;
+        var form_class = $(this).attr('class') ? $(this).attr('class') : undefined;
+        current_id = form_id + '_';
+        $.formsOptions[current_id] = $.validOptions;
+        if (typeof (options.lang) != 'undefined')
+        {
+            $.formsOptions[current_id].lang = options.lang;
+        }
+        if (typeof (options.action) != 'undefined')
+        {
+            if (options.action !== 'submit')
             {
-                $(this).removeClass('error').val('');
-            }
-            var value = $(this).val();
-            if(value == '0')
-            {
-                value = null;
-            }
-            if(value)
-            {
-                var count = value.replace(/\s+/g, '').replace(/&nbsp;/gi, '').length;   
-                var count_symbols = value.replace(/&nbsp;/gi, ' ').length;   
-                
-            }else{
-                var count = 0;
-            }
-            if(!count && !$(this).hasClass('no'))
-            {
-                if($(this).hasClass('selectbox'))
+                if (typeof (options.action) === 'object')
                 {
-                    var sb = $(this).attr('sb');
-                    $('#sbHolder_'+sb).addClass('error');
-                    setError($(this), 'required'); 
-                }else{
-                    error = 1;
-                    setError($(this), 'required');                   
-                }
-            }else{
-                if(count)
-                {
-                    /*string*/
-                    if($(this).hasClass('string')){
-                        if(!ValidateString(value) && !$(this).hasClass('email')){
-                            error = 1;
-                            setError($(this), 'special_char');
+                    if (typeof (options.action.type) != 'undefined' && $.inArray(options.action.type, $.serviceOptions.actionsType) >= 0)
+                    {
+                        if (typeof (options.action.on) != 'undefined' && $(options.action.on).length)
+                        {
+                            $.formsOptions[current_id].action = {type: options.action.type, on: $(options.action.on)};
+                        } else {
+                            solutions.service_error('bad_element');
                         }
-                    }
+                    } else {
 
-                    /*pass AND pass2*/
-                    if($(this).hasClass('pass2')){
-                        if(value != $(this).siblings('.pass').val()){
-                            error = 1;
-                            setError($(this), 'pass');
-                        }
+                        solutions.service_error('bad_action');
                     }
-                    /*email*/
-                    if($(this).hasClass('email')){
-                        if(!ValidateEmail(value)){
-                            error = 1;
-                            setError($(this), 'email');
-                        }
+                } else {
+                    $.formsOptions[current_id].action = {type: options.action, on: this};
+                }
+            } else {
+                $.formsOptions[current_id].action = {type: options.action, on: this};
+            }
+        } else {
+            if (typeof ($.formsOptions[current_id].action) != 'undefined' && $.inArray($.formsOptions[current_id].action, $.serviceOptions.actionsType) >= 0)
+            {
+                $.formsOptions[current_id].action = {type: $.formsOptions[current_id].action, on: this};
+            } else {
+                solutions.service_error('bad_action');
+            }
+        }
+        if (typeof (options.type) != 'undefined')
+        {
+            $.formsOptions[current_id].type = options.type;
+        }
+
+        /**
+         * FIELD LIST
+         * */
+        var fields = {};
+        var count = 0;
+        $('#' + form_id + ' .' + $.formsOptions[current_id].elementClass.required).each(function ()
+        {
+            fields[count] = {object: $(this), class: {}, attribute: {}};
+            var class_count = 0,
+                    attr_count = 0;
+            //class collection
+            for (var i in $.formsOptions[current_id].elementClass)
+            {
+                if ($(this).hasClass($.formsOptions[current_id].elementClass[i]))
+                {
+                    fields[count].class[class_count] = $.formsOptions[current_id].elementClass[i];
+                    class_count++;
+                }
+            }
+            //attributes collection
+            for (var i in $.serviceOptions.elementAttribute)
+            {
+                if ($(this).attr($.serviceOptions.elementAttribute[i]))
+                {
+                    if (i == 'ajax')
+                    {
+                        $(document).on('change', '#' + $(this).attr('id'), function (e) {
+                            s.ajax_validation($(this));
+                        })
                     }
-                    /*number*/
-                    if($(this).hasClass('number')){
-                        if(!IsNumeric(value)){
-                            error = 1;
-                            setError($(this),'number');
-                        }else{
-                            value = parseFloat($(this).val())
-                            /*data-in*/
-                            if($(this).attr('data-in'))
+                    fields[count].attribute[attr_count] = $.serviceOptions.elementAttribute[i];
+                    attr_count++;
+                }
+            }
+            count++;
+            if ($(this).attr('type') == 'file')
+            {
+                $(this).on('change', function () {
+                    $(this).removeClass($.serviceOptions.errorClass).siblings('.message').remove();
+                    s.fileValidation($(this))
+                })
+            }
+        })
+        console.log($.formsOptions);
+        $(this).attr('data-valid-id', current_id);
+        /* Action initialization for form
+         *  */
+        $(document).on($.formsOptions[current_id].action.type, '#' + $.formsOptions[current_id].action.on.attr('id'), function (e) {
+            if ($(this).hasClass('no_valid'))
+            {
+                return true;
+            } else {
+                e.preventDefault();
+                s.isError = 0;
+                console.log($.formsOptions);
+                s.validOption =  $.formsOptions[$(this).attr('data-valid-id')];
+                //console.log(s.validOption);
+                for (var el in fields)
+                {
+                    
+                    var classes = fields[el].class;
+                    var attributes = fields[el].attribute;
+                    if (fields[el].object.attr('id'))
+                        var object = $('#' + fields[el].object.attr('id'));
+                    else
+                        var object = $('[name="' + fields[el].object.attr('name') + '"]');
+                    //if element not disabled
+                    if (!object.attr('disabled'))
+                    {
+                        if (object.hasClass('error'))
+                        {
+                            if(s.validOption.type == 'underfield'){
+                                object.removeClass('error').siblings('.message').remove();                               
+                            }else{
+                                object.removeClass('error').val('');                                                              
+                            }
+                        }
+                        var value = object.val();
+                        if (value == '0')
+                        {
+                            value = null;
+                        }
+                        if (value)
+                        {
+                            var count = s.count(value);
+                            var count_symbols = s.count(value, true);
+                        } else {
+                            var count = 0;
+                        }
+
+                        if (!count && !s.inArray(s.validOption.elementClass.no, classes))
+                        {
+                            if (s.inArray(s.validOption.elementClass.selectbox, classes))
                             {
-                                var more = $(this).attr('data-in').split('-');
-                                var min  = parseFloat(more[0]);
-                                var max  = parseFloat(more[1]);
-                                if( value < min  ||  value > max)
-                                {                               
-                                    error = 1;
-                                    setError($(this),'not_in',$(this).attr('data-in'));
+                                s.setError(object, 'required');
+                            } else {
+                                s.setError(object, 'required');
+                            }
+                        } else {
+                            if (count)
+                            {
+                                /*string*/
+                                if (s.inArray(s.validOption.elementClass.string, classes)) {
+                                    if (!s.validString(value) && !s.inArray(s.validOption.elementClass.email, classes)) {
+                                        s.setError(object, 'string');
+                                    }
+                                }
+                                /*phone*/
+                                if (s.inArray(s.validOption.elementClass.phone, classes)) {
+                                    if (!s.validPhone(value) && !s.inArray(s.validOption.elementClass.email, classes)) {
+                                        s.setError(object, 'phone');
+                                    }
+                                }
+                                /*site*/
+                                if (s.inArray(s.validOption.elementClass.site, classes)) {
+                                    if (!s.validSite(value) && !s.inArray(s.validOption.elementClass.email, classes)) {
+                                        s.setError(object, 'site');
+                                    }
+                                }
+
+                                /*email*/
+                                if (s.inArray(s.validOption.elementClass.email, classes)) {
+                                    if (!s.validateEmail(value)) {
+                                        s.setError(object, 'email');
+                                    }
+                                }
+                                /*pass AND pass2*/
+                                if (s.inArray(s.validOption.elementClass.pass_again, classes)) {
+                                    if (value != object.parents('form').find('.pass').val()) {
+                                        s.setError(object, 'pass');
+                                    }
+                                }
+                                /*number*/
+                                if (s.inArray(s.validOption.elementClass.number, classes)) {
+                                    if (!s.IsNumeric(value)) {
+                                        s.setError(object, 'number');
+                                    } else {
+                                        value = parseFloat(value)
+                                        /*data-in*/
+                                        if (s.inArray($.serviceOptions.elementAttribute.in, attributes))
+                                        {
+                                            var more = object.attr($.serviceOptions.elementAttribute.in).split('-');
+                                            var min = parseFloat(more[0]);
+                                            var max = parseFloat(more[1]);
+                                            if (value < min || value > max)
+                                            {
+                                                s.setError(object, 'not_in', object.attr('data_in'));
+                                            }
+                                        }
+                                    }
+                                }
+                                /*data-min*/
+                                if (s.inArray($.serviceOptions.elementAttribute.min, attributes))
+                                {
+                                    var min = object.attr($.serviceOptions.elementAttribute.min);
+                                    if (min > count_symbols)
+                                    {
+                                        s.setError(object, 'min', min);
+                                    }
+                                }
+                                /*data-max*/
+                                if (s.inArray($.serviceOptions.elementAttribute.max, attributes))
+                                {
+                                    var max = object.attr($.serviceOptions.elementAttribute.max);
+                                    if (max < count_symbols)
+                                    {
+                                        s.setError(object, 'max', max);
+                                    }
+
+                                }
+                                /*data-file*/
+                                if (s.inArray($.serviceOptions.elementAttribute.file, attributes))
+                                {
+                                    s.fileValidation(object)
+                                }
+                                /*data-ajax*/
+                                if (!object.hasClass($.serviceOptions.errorClass))
+                                {
+                                    /*
+                                    if (s.inArray($.serviceOptions.elementAttribute.ajax, attributes))
+                                    {
+                                        var parse_ajax;
+                                        if (parse_ajax = s.parseJson(object.attr($.serviceOptions.elementAttribute.ajax)))
+                                        {
+                                            var data = typeof (parse_ajax.data) != 'undefined' ? parse_ajax.data : s.parseJson('{ "' + (object.attr('id') ? object.attr('id') : object.attr('name')) + '": "' + object.val() + '", "_token": "'+$('[name="_token"]').val()+'"}');
+                                            
+                                            console.log(data)
+                                            $.ajax({
+                                                type: typeof (parse_ajax.type) != 'undefined' ? parse_ajax.type : 'post',
+                                                data: data,
+                                                url: typeof (parse_ajax.url) != 'undefined' ? parse_ajax.url : '/',
+                                                dataType: 'json',
+                                                async: false,
+                                                success: function (data) {
+                                                    if (data.error)
+                                                    {
+                                                        s.setError(object, 'ajax', data.error);
+                                                    }
+                                                }
+                                            })
+                                        }
+                                    }*/
+                                }
+                            } else {
+                                /*pass2 empty*/
+                                if (s.inArray(s.validOption.elementClass.pass_again, classes)) {
+                                    if (value != object.parents('form').find('.pass').val()) {
+                                        s.setError(object, 'pass');
+                                    }
                                 }
                             }
                         }
-                    }   
-                    /*data-min*/
-                    if($(this).attr('data-min'))
-                    {
-                        var min = $(this).attr('data-min');
-                        if(min > count_symbols)
-                        {
-                            error = 1;
-                            setError($(this),'min',min);
-                        }
                     }
-                    /*data-max*/
-                    if($(this).attr('data-max'))
+                }
+                if (typeof (options.success) === 'function' && s.isError == 0) {
+                    //success request 
+                    solutions.success(s.validOption, function (request) {
+                        options.success(true);
+                    });
+                } else {
+                    if (s.validOption.scroll)
                     {
-                        var max = $(this).attr('data-max');
-                        if(max < count_symbols)
-                        {
-                            error = 1;
-                            setError($(this),'max',max);
-                        }
-
+                        s.scrollToElement('.' + $.serviceOptions.errorClass + ':first');
                     }
-
                 }
             }
-        }else{
-            if($(this).hasClass('error') && !$(this).attr('disabled'))
-            {
-                $(this).removeClass('error').val('');
-            }
-        }
-    })
-    errorMess += '</ul>';
-    if(type == 'popup')
-    {        
-        if(error == 1)
-        {
-            $('.alert_note').remove();
-            jQuery('body').after('<div class="alert_note alert-error" >'+
-                        '<button type="button" class="close"  data-dismiss="alert">×</button>'+
-                        ''+errorMess+''+
-                     '</div>');
-        }       
-
+        })
     }
-    return error;
-    
 
-}
-function IsNumeric(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
-$(function(){  
-    $('.required ').on('click focus change', function(){
-        if($(this).hasClass('error'))
+};
+var solutions = s = {
+    isError: 0,
+    errorMess: '',
+    validOption: {},
+    /**
+     * SERVICE ERROR 
+     * */
+    service_error: function (key) {
+        if ($.serviceOptions.criticalError[key] != undefined)
         {
-            if($(this).hasClass('selectbox'))
-            {
-                $('#sbHolder_'+$(this).attr('sb')).removeClass('error');
-                $(this).removeClass('error');                
-            }else{
-                $(this).removeClass('error').val('');                
+            var mess = 'Error:: ' + $.serviceOptions.criticalError[key] + '!!!';
+            servise_errors.push(mess)
+            console.log(mess);
+            return false;
+        } else {
+            this.service_error('bad_error_type');
+        }
+    },
+    success: function (arg, callback) {
+        return callback(this);
+    },
+    inArray: function (elem, arr) {
+        if (arr) {
+            for (var i in arr) {
+                // Skip accessing in sparse arrays
+                if (i in arr && arr[ i ] === elem) {
+                    return true;
+                }
             }
         }
-    })
-    $('.required.number').on('keyup change',function(){
-        return proverka($(this));
-    })
-})
-function ValidateEmail(mail)   
-{  
-    if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(mail))  
-    {  
-        return (true)  
-    }  
+        return false;
+    },
+    inKeys: function (elem, arr) {
+        if (arr[elem] != 'undefined') {
+            return true;
+        } else {
+            return false;
+        }
+    },
+    count: function (value, sumbols)
+    {
+        if (sumbols != 'undefined' && sumbols)
+        {
+            return value.replace(/&nbsp;/gi, ' ').length;
+        } else {
+            return value.replace(/\s+/g, '').replace(/&nbsp;/gi, '').length;
+        }
+    },
+    /**
+     * SET ERROR 
+     * */
+    setError: function (element, error, num)
+    {
+        if (typeof (num) == 'undefined')
+            num = '';
+        
+        console.log(s.validOption.type);
+        if (s.validOption.translation[s.validOption.lang][error])
+        {
+            if(element.attr('data-error-'+error))
+            {
+                var message = element.attr('data-error-'+error);
+            }else{
+                var message = s.validOption.translation[s.validOption.lang][error].replace("{0}", num);
+            }
+            if (s.validOption.type == 'field' && element.attr('type') != 'file')
+            {
+                element.addClass($.serviceOptions.errorClass).val(message);
+            } else if (s.validOption.type == 'popup') {
+                this.errorMess += '<li>' + message.replace("{f}", (element.attr('data-title') ? element.attr('data-title') : element.attr('name'))) + '</li>';
+            }
+            else if (s.validOption.type == 'underfield' || (element.attr('type') == 'file' && s.validOption.type == 'field')) {
+                element.addClass($.serviceOptions.errorClass).after(s.validOption.errorContainer + message.replace("{f}", (element.attr('data-title') ? element.attr('data-title') : element.attr('name'))));
+            }
+            this.isError = 1;
+        } else {
+            this.service_error('havent_translation');
+        }
 
-        return (false)  
-}
-function ValidateString(value)   
-{  
-    if(/^[a-zA-Zа-яіїєґА-ЯІЇЄҐ0-9\.\s]+$/.test(value))
-    {  
-        return (true)  
-    }  
-    return (false)  
-}
-function proverka(input) {
-    input.val(input.val().replace(/[^\d]/g, ''));
+    },
+    /*
+     *email validation 
+     */
+    validateEmail: function (email)
+    {
+        if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email))
+        {
+            return (true)
+        } else {
+            return (false)
+        }
+    },
+    /*
+     * 
+     */
+    validPhone: function (value)
+    {
+        if (/^[\d \+\-\(\)]{5,18}$/.test(value))
+        {
+            return (true)
+        } else {
+            return (false)
+        }
+    },
+    /*
+     * 
+     */
+    validString: function (value)
+    {
+        if (/^[a-zA-Zа-яіїєґА-ЯІЇЄҐ\.\-\s]+$/.test(value))
+        {
+            return (true)
+        } else {
+            return (false)
+        }
+    },
+    /*
+     * 
+     */
+    validSite: function (value)
+    {
+        if (/^(http\:\/\/|https\:\/\/)?([a-z0-9][a-z0-9\-]*\.)+[a-z0-9][a-z0-9\-]*$/i.test(value))
+        {
+            return (true)
+        } else {
+            return (false)
+        }
+    },
+    /*
+     * 
+     */
+    IsNumeric: function (number) {
+        return !isNaN(parseFloat(number)) && isFinite(number);
+    },
+    /*
+     *  remove not number sumbols 
+     */
+    notNumber: function (input, count) {
+        if(input.val().length > count)
+        {
+            var value = input.val().slice(0, -1)
+        }else{
+            var value = input.val()            
+        }     
+        input.val(value.replace(/[^\d\s]/g, ''));
+       
+    },
+    scrollToElement: function (selector, time, verticalOffset)
+    {
+        time = typeof (time) != 'undefined' ? time : 1000;
+        verticalOffset = typeof (verticalOffset) != 'undefined' ? verticalOffset : -20;
+        element = $(selector);
+        offset = element.offset();
+        if (offset != 'undefined' && offset)
+        {
+            offsetTop = offset.top + verticalOffset;
+            $('html, body').animate({
+                scrollTop: offsetTop
+            }, time);
+        }
+    },
+    parseJson: function (json)
+    {
+        try {
+            return JSON && JSON.parse(json) || $.parseJSON(json)
+        } catch (e) {
+            console.log(e);
+            this.service_error('bad_json_format');
+            return false;
+        }
+    },
+    /*
+     * get file attributes
+     */
+    getFile: function (object)
+    {
+        if (object.val() && object[0])
+        {
+            var file_attributes = {}
+            file_attributes['name'] = object.val().split('\\').pop();
+            file_attributes['format'] = object[0].files[0].name.split('.').pop().toLowerCase();
+            file_attributes['size'] = object[0].files[0].size;
+            return file_attributes;
+        } else {
+            return false;
+        }
+    },
+    /*
+     * get file attributes
+     */
+    fileValidation: function (object)
+    {
+        var parse_json;
+        if (parse_json = this.parseJson(object.attr($.serviceOptions.elementAttribute.file)))
+        {
+            var formats = typeof (parse_json.formats) != 'undefined' ? parse_json.formats.split(',') : false
+            var min_size = typeof (parse_json.min_size) != 'undefined' ? parse_json.min_size : false
+            var max_size = typeof (parse_json.max_size) != 'undefined' ? parse_json.max_size : false
+            var name_container = typeof (parse_json.name) != 'undefined' ? parse_json.name : false
+            var prev = typeof (parse_json.preview) != 'undefined' ? parse_json.preview : false
+            if (file = this.getFile(object))
+            {
+                if (formats && !this.inArray(file.format, formats))
+                {
+                    this.setError(object, 'file_format');
+                } else {
+                    if (min_size && (min_size * 1024 * 1024) > file.size)
+                    {
+                        this.setError(object, 'file_max_size', min_size);
+                    }
+                    if (max_size && (max_size * 1024 * 1024) < file.size)
+                    {
+                        this.setError(object, 'file_min_size', max_size);
+                    }
+                }
+                if (!object.hasClass($.serviceOptions.errorClass))
+                {
+                    if (name_container)
+                    {
+                        $.validOptions.old_file_name = $(name_container).text().length ? $(name_container).text() : $(name_container).val();
+                        $(name_container).text(file.name).val(file.name)
+                    }
+
+                    if (prev)
+                    {
+                        var reader = new FileReader();
+                        reader.readAsDataURL(object[0].files[0]);
+                        reader.onload = function (e) {
+                            if (!$(prev).length)
+                            {
+                                if (!object.siblings('.' + $.validOptions.imagePrevClass).length)
+                                {
+                                    object.after('<img class="' + $.validOptions.imagePrevClass + ' ' + $.serviceOptions.validPrevImgClass + '" src="' + e.target.result + '">');
+                                } else {
+                                    object.siblings('.' + $.validOptions.imagePrevClass).addClass($.serviceOptions.validPrevImgClass).attr("src", e.target.result).show()
+                                }
+                            } else {
+                                $(prev).attr("src", e.target.result).show()
+                            }
+                        }
+                    }
+                } else {
+                    s.clearPreview(object, name_container)
+                }
+            } else {
+                s.clearPreview(object, name_container)
+            }
+        }
+    },
+    clearPreview: function (object, name_container) {
+        if (name_container && $.validOptions.old_file_name)
+        {
+            $(name_container).text($.validOptions.old_file_name).val($.validOptions.old_file_name)
+        }
+        $(object).siblings('.' + $.validOptions.imagePrevClass).removeAttr("src").hide();
+    },
+    nospace: function (str) {
+        return str.replace(/\s+/g, '');
+    },
+    ajax_validation: function (object) {
+        var parse_ajax;
+        if (parse_ajax = s.parseJson(object.attr($.serviceOptions.elementAttribute.ajax)))
+        {
+            var data = typeof (parse_ajax.data) != 'undefined' ? parse_ajax.data : s.parseJson('{ "' + (object.attr('id') ? object.attr('id') : object.attr('name')) + '": "' + object.val() + '", "_token": "' + $('[name="_token"]').val() + '"}');
+            $.ajax({
+                type: typeof (parse_ajax.type) != 'undefined' ? parse_ajax.type : 'post',
+                data: data,
+                url: typeof (parse_ajax.url) != 'undefined' ? parse_ajax.url : '/',
+                dataType: 'json',
+                async: false,
+                success: function (data) {
+                    if (data.error)
+                    {
+                        s.setError(object, 'ajax', data.error);
+                    }
+                }
+            })
+        }
+    }
 };
-function errors(lang)
-{
-    var array =  {
-        en:{
-            required:'This field is required.',
-            email   :'Please enter a valid email address.',
-            number  :'Please enter a valid number.',
-            not_in  :'Please enter number in {0} ',
-            min     :'Please enter at least {0} characters.',
-            max     :'Please enter no more than {0} characters.',
-            pass    :'Error_pass',
-            special_char :'Enter without special characters.',
-        },ru:{
-            required:'Поле не должно быть пустым.',
-            email   :'Введите корректный email.',
-            min     :'Значение поля должно быть больше {0}.',
-            max     :'Значение поля должно быть меньше {0}.' 
+/*
+ * Remove class error from elements
+ */
+$(document).on('click focus change', '.' + $.validOptions.elementClass.required, function () {
+    if ($(this).hasClass($.serviceOptions.errorClass) && $(this).attr('type') != 'file')
+    {
+        if ($(this).hasClass('selectbox'))
+        {
+            $('#sbHolder_' + $(this).attr('sb')).removeClass($.serviceOptions.errorClass);
+            $(this).removeClass($.serviceOptions.errorClass);
+        } else {
+            if ($(this).hasClass($.validOptions.elementClass.pass) && $(this).hasClass($.validOptions.elementClass.pass_again))
+            {
+                $(this).removeClass($.serviceOptions.errorClass).val('').siblings('.message').remove();
+            } else {
+                if ($.validOptions.type == 'field')
+                {
+                    $(this).removeClass($.serviceOptions.errorClass).val('');
+                } else if ($.validOptions.type == 'underfield')
+                {
+                    $(this).removeClass($.serviceOptions.errorClass).siblings('.message').remove();
+                }
+
+            }
         }
-    };
-    return array[lang];
-}
-function errors2(lang)
-{
-    var array =  {
-        en:{
-            required:'<b>{f}</b>. Field  is required.',
-            email   :'<b>{f}</b>. Please enter a valid email address.',
-            number  :'<b>{f}</b>. Please enter a valid number.',
-            not_in  :'<b>{f}</b>. Please enter number in {0} ',
-            min     :'<b>{f}</b>. Please enter at least {0} characters.',
-            max     :'<b>{f}</b>. Please enter no more than {0} characters.',
-            special_char :'<b>{f}</b>. Enter without special characters.',
-            pass    :'<b>Password</b>. New password and repeated new password did not match.'
-        },ru:{
-            required:'Поле не должно быть пустым.',
-            email   :'Введите корректный email.',
-            min     :'Значение поля должно быть больше {0}.',
-            max     :'Значение поля должно быть меньше {0}.' 
+    }
+})
+$(document).on('keyup change', '.'+$.validOptions.elementClass.required+' .' + $.validOptions.elementClass.number, function () {
+    if ($.validOptions.numberFormat)
+    { 
+        var num = '';
+        var k = -1;
+        var value = s.nospace($(this).val());
+        for (var i = value.length; i >= 0; i--)
+        {
+            num = value[i] + (k % $.validOptions.numberFormat == 0 ? ' ' : '') + num;
+            k++;
         }
-    };
-    return array[lang];
-}
+        $(this).val(num)
+    }
+    //console.log($(this).val());
+    return s.notNumber($(this), 11);
+})
+
+
