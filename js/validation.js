@@ -3,7 +3,7 @@
  * Version 2.0
  * 2015
  * 
- * EXEMPELS - options
+ * EXEMPELS - params
  * @lang:'ru'
  * @type:'field','underfield','popup'
  * @action:'submit'/  {type:'click', on:'button'}
@@ -79,7 +79,7 @@ $.validOptions = {
     imagePrevClass: "prev_img",
 };
 /*
- * Not editable options
+ * Not editable params
  */
 $.serviceOptions = {
     errorClass: 'error',
@@ -96,79 +96,298 @@ $.serviceOptions = {
     validPrevImgClass: 'valid_prev_img',
     elementAttribute: {min: 'data-min', max: 'data-max', in: 'data-in', ajax: 'data-ajax', file: 'data-file'},
 }
-$.formsOptions = {};
+$.formsOptions = [];
 var current_id = 0;
 var servise_errors = [];
-$.fn.clear_form = function () {
+$.fn.clear_form = function() {
     $(this).find('input:not(.no_clear)').val('');
 }
-$.fn.validation = function (options) 
+$.fn.validation = function(params)
 {
-    console.log(options);
-    if (typeof (options) != undefined) {
+    if (typeof params == "object" && !params.length) {
         var service_error = [];
         var form = $(this);
-        var form_id = $(this).attr('id') ? $(this).attr('id') : undefined;
-        var form_class = $(this).attr('class') ? $(this).attr('class') : undefined;
-        current_id = form_id + '_';
-        $.formsOptions[current_id] = $.validOptions;
-        if (typeof (options.lang) != 'undefined')
-        {
-            $.formsOptions[current_id].lang = options.lang;
-        }
-        if (typeof (options.action) != 'undefined')
-        {
-            if (options.action !== 'submit')
-            {
-                if (typeof (options.action) === 'object')
+        var s = new solutions.init(form, params, function(s) {
+            $(document).on(s.validOptions.action.type, '#' + s.validOptions.action.on, function(e) {
+
+                if ($(this).hasClass('no_valid'))
                 {
-                    if (typeof (options.action.type) != 'undefined' && $.inArray(options.action.type, $.serviceOptions.actionsType) >= 0)
+                    return true;
+                } else {
+                    e.preventDefault();
+                    s.isError = 0;
+                    for (var el in s.fields)
                     {
-                        if (typeof (options.action.on) != 'undefined' && $(options.action.on).length)
+                        var classes = s.fields[el].class;
+                        var attributes = s.fields[el].attribute;
+                        if (s.fields[el].object.hasClass('dynamic_field'))
+                            var object = $('#' + s.fields[el].object.attr('id'));
+                        else
+                            var object = s.fields[el].object;
+                        //if element not disabled
+                        if (!object.attr('disabled'))
                         {
-                            $.formsOptions[current_id].action = {type: options.action.type, on: $(options.action.on)};
+                            if (object.hasClass('error'))
+                            {
+                                if (s.validOptions.type == 'underfield') {
+                                    object.removeClass('error').siblings('.message').remove();
+                                } else {
+                                    object.removeClass('error').val('');
+                                }
+                            }
+                            var value = object.val();
+                            if (value == '0')
+                            {
+                                value = null;
+                            }
+                            if (value)
+                            {
+                                var count = s.count(value);
+                                var count_symbols = s.count(value, true);
+                            } else {
+                                var count = 0;
+                            }
+
+                            if (!count && !s.inArray(s.validOptions.elementClass.no, classes))
+                            {
+                                if (s.inArray(s.validOptions.elementClass.selectbox, classes))
+                                {
+                                    s.setError(object, 'required');
+                                } else {
+                                    s.setError(object, 'required');
+                                }
+                            } else {
+                                if (count)
+                                {
+                                    /*string*/
+                                    if (s.inArray(s.validOptions.elementClass.string, classes)) {
+                                        if (!s.validString(value) && !s.inArray(s.validOptions.elementClass.email, classes)) {
+                                            s.setError(object, 'string');
+                                        }
+                                    }
+                                    /*phone*/
+                                    if (s.inArray(s.validOptions.elementClass.phone, classes)) {
+                                        if (!s.validPhone(value) && !s.inArray(s.validOptions.elementClass.email, classes)) {
+                                            s.setError(object, 'phone');
+                                        }
+                                    }
+                                    /*site*/
+                                    if (s.inArray(s.validOptions.elementClass.site, classes)) {
+                                        if (!s.validSite(value) && !s.inArray(s.validOptions.elementClass.email, classes)) {
+                                            s.setError(object, 'site');
+                                        }
+                                    }
+
+                                    /*email*/
+                                    if (s.inArray(s.validOptions.elementClass.email, classes)) {
+                                        if (!s.validateEmail(value)) {
+                                            s.setError(object, 'email');
+                                        }
+                                    }
+                                    /*pass AND pass2*/
+                                    if (s.inArray(s.validOptions.elementClass.pass_again, classes)) {
+                                        if (value != object.parents('form').find('.pass').val()) {
+                                            s.setError(object, 'pass');
+                                        }
+                                    }
+                                    /*number*/
+                                    if (s.inArray(s.validOptions.elementClass.number, classes)) {
+                                        if (!s.IsNumeric(value)) {
+                                            s.setError(object, 'number');
+                                        } else {
+                                            value = parseFloat(value)
+                                            /*data-in*/
+                                            if (s.inArray($.serviceOptions.elementAttribute.in, attributes))
+                                            {
+                                                var more = object.attr($.serviceOptions.elementAttribute.in).split('-');
+                                                var min = parseFloat(more[0]);
+                                                var max = parseFloat(more[1]);
+                                                if (value < min || value > max)
+                                                {
+                                                    s.setError(object, 'not_in', object.attr('data_in'));
+                                                }
+                                            }
+                                        }
+                                    }
+                                    /*data-min*/
+                                    if (s.inArray($.serviceOptions.elementAttribute.min, attributes))
+                                    {
+                                        var min = object.attr($.serviceOptions.elementAttribute.min);
+                                        if (min > count_symbols)
+                                        {
+                                            s.setError(object, 'min', min);
+                                        }
+                                    }
+                                    /*data-max*/
+                                    if (s.inArray($.serviceOptions.elementAttribute.max, attributes))
+                                    {
+                                        var max = object.attr($.serviceOptions.elementAttribute.max);
+                                        if (max < count_symbols)
+                                        {
+                                            s.setError(object, 'max', max);
+                                        }
+
+                                    }
+                                    /*data-file*/
+                                    if (s.inArray($.serviceOptions.elementAttribute.file, attributes))
+                                    {
+                                        s.fileValidation(object)
+                                    }
+                                    /*data-ajax*/
+                                    if (!object.hasClass($.serviceOptions.errorClass))
+                                    {
+                                        /*
+                                         if (s.inArray($.serviceOptions.elementAttribute.ajax, attributes))
+                                         {
+                                         var parse_ajax;
+                                         if (parse_ajax = s.parseJson(object.attr($.serviceOptions.elementAttribute.ajax)))
+                                         {
+                                         var data = typeof (parse_ajax.data) != 'undefined' ? parse_ajax.data : s.parseJson('{ "' + (object.attr('id') ? object.attr('id') : object.attr('name')) + '": "' + object.val() + '", "_token": "'+$('[name="_token"]').val()+'"}');
+                                         
+                                         console.log(data)
+                                         $.ajax({
+                                         type: typeof (parse_ajax.type) != 'undefined' ? parse_ajax.type : 'post',
+                                         data: data,
+                                         url: typeof (parse_ajax.url) != 'undefined' ? parse_ajax.url : '/',
+                                         dataType: 'json',
+                                         async: false,
+                                         success: function (data) {
+                                         if (data.error)
+                                         {
+                                         s.setError(object, 'ajax', data.error);
+                                         }
+                                         }
+                                         })
+                                         }
+                                         }*/
+                                    }
+                                } else {
+                                    /*pass2 empty*/
+                                    if (s.inArray(s.validOptions.elementClass.pass_again, classes)) {
+                                        if (value != object.parents('form').find('.pass').val()) {
+                                            s.setError(object, 'pass');
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (typeof (params.success) === 'function' && s.isError == 0) {
+                        //success request 
+                        s.success(s.validOptions, function(request) {
+                            params.success(true);
+                        });
+                    } else {
+                        if (s.validOptions.scroll)
+                        {
+                            s.scrollToElement('.' + $.serviceOptions.errorClass + ':first');
+                        }
+                    }
+                }
+            });
+            /*
+             * Remove class error from elements
+             */
+                    console.log('#' + s.form_id + ' .' + s.validOptions.elementClass.required)
+            $(document).on('click focus change', '#' + s.form_id + ' .' + s.validOptions.elementClass.required, function() {
+                if ($(this).hasClass($.serviceOptions.errorClass) && $(this).attr('type') != 'file')
+                {
+                    if ($(this).hasClass(s.validOptions.elementClass.pass) || $(this).hasClass(s.validOptions.elementClass.pass_again))
+                    {
+                        $(this).removeClass($.serviceOptions.errorClass).val('').siblings('.message').remove();
+                    } else {
+                        
+                        if (s.validOptions.type == 'field')
+                        {
+                            $(this).removeClass($.serviceOptions.errorClass).val('');
+                        } else if (s.validOptions.type == 'underfield')
+                        {
+                            $(this).removeClass($.serviceOptions.errorClass).siblings('.message').remove();
+                        }
+                    }
+
+                }
+            })
+            $(document).on('keyup change', '#' + this.form_id + ' .' + s.validOptions.elementClass.required + ' .' + s.validOptions.elementClass.number, function() {
+                if (s.validOptions.numberFormat)
+                {
+                    var num = '';
+                    var k = -1;
+                    var value = s.nospace($(this).val());
+                    for (var i = value.length; i >= 0; i--)
+                    {
+                        num = value[i] + (k % s.validOptions.numberFormat == 0 ? ' ' : '') + num;
+                        k++;
+                    }
+                    $(this).val(num)
+                }
+                //console.log($(this).val());
+                return s.notNumber($(this), 11);
+            })
+
+        });
+    }
+};
+
+var solutions = s = {
+    init: function(o, params, feedback) {
+        this.form_id = o.attr('id') ? o.attr('id') : undefined;
+        this.form_class = o.attr('class') ? o.attr('class') : undefined;
+        this.validOptions = Object.assign({}, $.validOptions);
+        if (typeof (params.lang) != 'undefined')
+        {
+            this.validOptions.lang = params.lang;
+        }
+        if (typeof (params.action) != 'undefined')
+        {
+            if (params.action != 'submit')
+            {
+                if (typeof (params.action) === 'object')
+                {
+                    if (typeof (params.action.type) != 'undefined' && this.inArray(params.action.type, $.serviceOptions.actionsType))
+                    {
+                        if (typeof (params.action.on) != 'undefined' && $(params.action.on).length)
+                        {
+                            this.validOptions.action = {type: params.action.type, on: o.find(params.action.on).attr('id')};
                         } else {
-                            solutions.service_error('bad_element');
+                            console.log(this.service_error('bad_element'));
                         }
                     } else {
-
-                        solutions.service_error('bad_action');
+                        console.log(this.service_error('bad_action'));
                     }
                 } else {
-                    $.formsOptions[current_id].action = {type: options.action, on: this};
+                    this.validOptions.action = {type: params.action, on: this.form_id};
                 }
             } else {
-                $.formsOptions[current_id].action = {type: options.action, on: this};
+                this.validOptions.action = {type: params.action, on: this.form_id};
             }
         } else {
-            if (typeof ($.formsOptions[current_id].action) != 'undefined' && $.inArray($.formsOptions[current_id].action, $.serviceOptions.actionsType) >= 0)
+            if (typeof (this.validOptions.action) != 'undefined' && this.inArray(this.validOptions.action, $.serviceOptions.actionsType))
             {
-                $.formsOptions[current_id].action = {type: $.formsOptions[current_id].action, on: this};
+                this.validOptions.action = {type: this.validOptions.action, on: this.form_id};
             } else {
-                solutions.service_error('bad_action');
+                console.log(this.service_error('bad_action'));
             }
         }
-        if (typeof (options.type) != 'undefined')
+        if (typeof (params.type) != 'undefined')
         {
-            $.formsOptions[current_id].type = options.type;
+            this.validOptions.type = params.type;
         }
-
-        /**
-         * FIELD LIST
-         * */
-        var fields = {};
-        var count = 0;
-        $('#' + form_id + ' .' + $.formsOptions[current_id].elementClass.required).each(function ()
+        var count = 0,
+                fields = {},
+                validOptions = this.validOptions,
+                solutions = this
+        $('#' + this.form_id + ' .' + this.validOptions.elementClass.required).each(function()
         {
             fields[count] = {object: $(this), class: {}, attribute: {}};
             var class_count = 0,
                     attr_count = 0;
             //class collection
-            for (var i in $.formsOptions[current_id].elementClass)
+            for (var i in validOptions.elementClass)
             {
-                if ($(this).hasClass($.formsOptions[current_id].elementClass[i]))
+                if ($(this).hasClass(validOptions.elementClass[i]))
                 {
-                    fields[count].class[class_count] = $.formsOptions[current_id].elementClass[i];
+                    fields[count].class[class_count] = validOptions.elementClass[i];
                     class_count++;
                 }
             }
@@ -179,8 +398,8 @@ $.fn.validation = function (options)
                 {
                     if (i == 'ajax')
                     {
-                        $(document).on('change', '#' + $(this).attr('id'), function (e) {
-                            s.ajax_validation($(this));
+                        $(document).on('change', '#' + $(this).attr('id'), function(e) {
+                            solutions.ajax_validation($(this));
                         })
                     }
                     fields[count].attribute[attr_count] = $.serviceOptions.elementAttribute[i];
@@ -190,221 +409,39 @@ $.fn.validation = function (options)
             count++;
             if ($(this).attr('type') == 'file')
             {
-                $(this).on('change', function () {
+                $(this).on('change', function() {
                     $(this).removeClass($.serviceOptions.errorClass).siblings('.message').remove();
-                    s.fileValidation($(this))
+                    solutions.fileValidation($(this))
                 })
             }
         })
-        console.log($.formsOptions);
-        $(this).attr('data-valid-id', current_id);
-        /* Action initialization for form
-         *  */
-        $(document).on($.formsOptions[current_id].action.type, '#' + $.formsOptions[current_id].action.on.attr('id'), function (e) {
-            if ($(this).hasClass('no_valid'))
-            {
-                return true;
-            } else {
-                e.preventDefault();
-                s.isError = 0;
-                console.log($.formsOptions);
-                s.validOption =  $.formsOptions[$(this).attr('data-valid-id')];
-                //console.log(s.validOption);
-                for (var el in fields)
-                {
-                    
-                    var classes = fields[el].class;
-                    var attributes = fields[el].attribute;
-                    if (fields[el].object.attr('id'))
-                        var object = $('#' + fields[el].object.attr('id'));
-                    else
-                        var object = $('[name="' + fields[el].object.attr('name') + '"]');
-                    //if element not disabled
-                    if (!object.attr('disabled'))
-                    {
-                        if (object.hasClass('error'))
-                        {
-                            if(s.validOption.type == 'underfield'){
-                                object.removeClass('error').siblings('.message').remove();                               
-                            }else{
-                                object.removeClass('error').val('');                                                              
-                            }
-                        }
-                        var value = object.val();
-                        if (value == '0')
-                        {
-                            value = null;
-                        }
-                        if (value)
-                        {
-                            var count = s.count(value);
-                            var count_symbols = s.count(value, true);
-                        } else {
-                            var count = 0;
-                        }
-
-                        if (!count && !s.inArray(s.validOption.elementClass.no, classes))
-                        {
-                            if (s.inArray(s.validOption.elementClass.selectbox, classes))
-                            {
-                                s.setError(object, 'required');
-                            } else {
-                                s.setError(object, 'required');
-                            }
-                        } else {
-                            if (count)
-                            {
-                                /*string*/
-                                if (s.inArray(s.validOption.elementClass.string, classes)) {
-                                    if (!s.validString(value) && !s.inArray(s.validOption.elementClass.email, classes)) {
-                                        s.setError(object, 'string');
-                                    }
-                                }
-                                /*phone*/
-                                if (s.inArray(s.validOption.elementClass.phone, classes)) {
-                                    if (!s.validPhone(value) && !s.inArray(s.validOption.elementClass.email, classes)) {
-                                        s.setError(object, 'phone');
-                                    }
-                                }
-                                /*site*/
-                                if (s.inArray(s.validOption.elementClass.site, classes)) {
-                                    if (!s.validSite(value) && !s.inArray(s.validOption.elementClass.email, classes)) {
-                                        s.setError(object, 'site');
-                                    }
-                                }
-
-                                /*email*/
-                                if (s.inArray(s.validOption.elementClass.email, classes)) {
-                                    if (!s.validateEmail(value)) {
-                                        s.setError(object, 'email');
-                                    }
-                                }
-                                /*pass AND pass2*/
-                                if (s.inArray(s.validOption.elementClass.pass_again, classes)) {
-                                    if (value != object.parents('form').find('.pass').val()) {
-                                        s.setError(object, 'pass');
-                                    }
-                                }
-                                /*number*/
-                                if (s.inArray(s.validOption.elementClass.number, classes)) {
-                                    if (!s.IsNumeric(value)) {
-                                        s.setError(object, 'number');
-                                    } else {
-                                        value = parseFloat(value)
-                                        /*data-in*/
-                                        if (s.inArray($.serviceOptions.elementAttribute.in, attributes))
-                                        {
-                                            var more = object.attr($.serviceOptions.elementAttribute.in).split('-');
-                                            var min = parseFloat(more[0]);
-                                            var max = parseFloat(more[1]);
-                                            if (value < min || value > max)
-                                            {
-                                                s.setError(object, 'not_in', object.attr('data_in'));
-                                            }
-                                        }
-                                    }
-                                }
-                                /*data-min*/
-                                if (s.inArray($.serviceOptions.elementAttribute.min, attributes))
-                                {
-                                    var min = object.attr($.serviceOptions.elementAttribute.min);
-                                    if (min > count_symbols)
-                                    {
-                                        s.setError(object, 'min', min);
-                                    }
-                                }
-                                /*data-max*/
-                                if (s.inArray($.serviceOptions.elementAttribute.max, attributes))
-                                {
-                                    var max = object.attr($.serviceOptions.elementAttribute.max);
-                                    if (max < count_symbols)
-                                    {
-                                        s.setError(object, 'max', max);
-                                    }
-
-                                }
-                                /*data-file*/
-                                if (s.inArray($.serviceOptions.elementAttribute.file, attributes))
-                                {
-                                    s.fileValidation(object)
-                                }
-                                /*data-ajax*/
-                                if (!object.hasClass($.serviceOptions.errorClass))
-                                {
-                                    /*
-                                    if (s.inArray($.serviceOptions.elementAttribute.ajax, attributes))
-                                    {
-                                        var parse_ajax;
-                                        if (parse_ajax = s.parseJson(object.attr($.serviceOptions.elementAttribute.ajax)))
-                                        {
-                                            var data = typeof (parse_ajax.data) != 'undefined' ? parse_ajax.data : s.parseJson('{ "' + (object.attr('id') ? object.attr('id') : object.attr('name')) + '": "' + object.val() + '", "_token": "'+$('[name="_token"]').val()+'"}');
-                                            
-                                            console.log(data)
-                                            $.ajax({
-                                                type: typeof (parse_ajax.type) != 'undefined' ? parse_ajax.type : 'post',
-                                                data: data,
-                                                url: typeof (parse_ajax.url) != 'undefined' ? parse_ajax.url : '/',
-                                                dataType: 'json',
-                                                async: false,
-                                                success: function (data) {
-                                                    if (data.error)
-                                                    {
-                                                        s.setError(object, 'ajax', data.error);
-                                                    }
-                                                }
-                                            })
-                                        }
-                                    }*/
-                                }
-                            } else {
-                                /*pass2 empty*/
-                                if (s.inArray(s.validOption.elementClass.pass_again, classes)) {
-                                    if (value != object.parents('form').find('.pass').val()) {
-                                        s.setError(object, 'pass');
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (typeof (options.success) === 'function' && s.isError == 0) {
-                    //success request 
-                    solutions.success(s.validOption, function (request) {
-                        options.success(true);
-                    });
-                } else {
-                    if (s.validOption.scroll)
-                    {
-                        s.scrollToElement('.' + $.serviceOptions.errorClass + ':first');
-                    }
-                }
-            }
-        })
+        this.fields = fields;
+        return feedback(this);
     }
-
 };
-var solutions = s = {
+solutions.init.prototype = {
     isError: 0,
-    errorMess: '',
-    validOption: {},
+    form_id: '',
+    form_class: '',
+    fields: {},
+    validOptions: {},
     /**
      * SERVICE ERROR 
      * */
-    service_error: function (key) {
+    service_error: function(key) {
         if ($.serviceOptions.criticalError[key] != undefined)
         {
             var mess = 'Error:: ' + $.serviceOptions.criticalError[key] + '!!!';
             servise_errors.push(mess)
-            console.log(mess);
-            return false;
+            return mess;
         } else {
             this.service_error('bad_error_type');
         }
     },
-    success: function (arg, callback) {
+    success: function(arg, callback) {
         return callback(this);
     },
-    inArray: function (elem, arr) {
+    inArray: function(elem, arr) {
         if (arr) {
             for (var i in arr) {
                 // Skip accessing in sparse arrays
@@ -415,14 +452,14 @@ var solutions = s = {
         }
         return false;
     },
-    inKeys: function (elem, arr) {
+    inKeys: function(elem, arr) {
         if (arr[elem] != 'undefined') {
             return true;
         } else {
             return false;
         }
     },
-    count: function (value, sumbols)
+    count: function(value, sumbols)
     {
         if (sumbols != 'undefined' && sumbols)
         {
@@ -434,28 +471,28 @@ var solutions = s = {
     /**
      * SET ERROR 
      * */
-    setError: function (element, error, num)
+    setError: function(element, error, num)
     {
         if (typeof (num) == 'undefined')
             num = '';
-        
-        console.log(s.validOption.type);
-        if (s.validOption.translation[s.validOption.lang][error])
+
+
+        if (this.validOptions.translation[this.validOptions.lang][error])
         {
-            if(element.attr('data-error-'+error))
+            if (element.attr('data-error-' + error))
             {
-                var message = element.attr('data-error-'+error);
-            }else{
-                var message = s.validOption.translation[s.validOption.lang][error].replace("{0}", num);
+                var message = element.attr('data-error-' + error);
+            } else {
+                var message = this.validOptions.translation[this.validOptions.lang][error].replace("{0}", num);
             }
-            if (s.validOption.type == 'field' && element.attr('type') != 'file')
+            if (this.validOptions.type == 'field' && element.attr('type') != 'file')
             {
                 element.addClass($.serviceOptions.errorClass).val(message);
-            } else if (s.validOption.type == 'popup') {
+            } else if (this.validOptions.type == 'popup') {
                 this.errorMess += '<li>' + message.replace("{f}", (element.attr('data-title') ? element.attr('data-title') : element.attr('name'))) + '</li>';
             }
-            else if (s.validOption.type == 'underfield' || (element.attr('type') == 'file' && s.validOption.type == 'field')) {
-                element.addClass($.serviceOptions.errorClass).after(s.validOption.errorContainer + message.replace("{f}", (element.attr('data-title') ? element.attr('data-title') : element.attr('name'))));
+            else if (this.validOptions.type == 'underfield' || (element.attr('type') == 'file' && this.validOptions.type == 'field')) {
+                element.addClass($.serviceOptions.errorClass).after(this.validOptions.errorContainer + message.replace("{f}", (element.attr('data-title') ? element.attr('data-title') : element.attr('name'))));
             }
             this.isError = 1;
         } else {
@@ -466,7 +503,7 @@ var solutions = s = {
     /*
      *email validation 
      */
-    validateEmail: function (email)
+    validateEmail: function(email)
     {
         if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email))
         {
@@ -478,7 +515,7 @@ var solutions = s = {
     /*
      * 
      */
-    validPhone: function (value)
+    validPhone: function(value)
     {
         if (/^[\d \+\-\(\)]{5,18}$/.test(value))
         {
@@ -490,7 +527,7 @@ var solutions = s = {
     /*
      * 
      */
-    validString: function (value)
+    validString: function(value)
     {
         if (/^[a-zA-Zа-яіїєґА-ЯІЇЄҐ\.\-\s]+$/.test(value))
         {
@@ -502,7 +539,7 @@ var solutions = s = {
     /*
      * 
      */
-    validSite: function (value)
+    validSite: function(value)
     {
         if (/^(http\:\/\/|https\:\/\/)?([a-z0-9][a-z0-9\-]*\.)+[a-z0-9][a-z0-9\-]*$/i.test(value))
         {
@@ -514,23 +551,23 @@ var solutions = s = {
     /*
      * 
      */
-    IsNumeric: function (number) {
+    IsNumeric: function(number) {
         return !isNaN(parseFloat(number)) && isFinite(number);
     },
     /*
      *  remove not number sumbols 
      */
-    notNumber: function (input, count) {
-        if(input.val().length > count)
+    notNumber: function(input, count) {
+        if (input.val().length > count)
         {
             var value = input.val().slice(0, -1)
-        }else{
-            var value = input.val()            
-        }     
+        } else {
+            var value = input.val()
+        }
         input.val(value.replace(/[^\d\s]/g, ''));
-       
+
     },
-    scrollToElement: function (selector, time, verticalOffset)
+    scrollToElement: function(selector, time, verticalOffset)
     {
         time = typeof (time) != 'undefined' ? time : 1000;
         verticalOffset = typeof (verticalOffset) != 'undefined' ? verticalOffset : -20;
@@ -544,7 +581,7 @@ var solutions = s = {
             }, time);
         }
     },
-    parseJson: function (json)
+    parseJson: function(json)
     {
         try {
             return JSON && JSON.parse(json) || $.parseJSON(json)
@@ -557,7 +594,7 @@ var solutions = s = {
     /*
      * get file attributes
      */
-    getFile: function (object)
+    getFile: function(object)
     {
         if (object.val() && object[0])
         {
@@ -573,7 +610,7 @@ var solutions = s = {
     /*
      * get file attributes
      */
-    fileValidation: function (object)
+    fileValidation: function(object)
     {
         var parse_json;
         if (parse_json = this.parseJson(object.attr($.serviceOptions.elementAttribute.file)))
@@ -602,7 +639,7 @@ var solutions = s = {
                 {
                     if (name_container)
                     {
-                        $.validOptions.old_file_name = $(name_container).text().length ? $(name_container).text() : $(name_container).val();
+                        this.validOptions.old_file_name = $(name_container).text().length ? $(name_container).text() : $(name_container).val();
                         $(name_container).text(file.name).val(file.name)
                     }
 
@@ -610,14 +647,14 @@ var solutions = s = {
                     {
                         var reader = new FileReader();
                         reader.readAsDataURL(object[0].files[0]);
-                        reader.onload = function (e) {
+                        reader.onload = function(e) {
                             if (!$(prev).length)
                             {
-                                if (!object.siblings('.' + $.validOptions.imagePrevClass).length)
+                                if (!object.siblings('.' + this.validOptions.imagePrevClass).length)
                                 {
-                                    object.after('<img class="' + $.validOptions.imagePrevClass + ' ' + $.serviceOptions.validPrevImgClass + '" src="' + e.target.result + '">');
+                                    object.after('<img class="' + this.validOptions.imagePrevClass + ' ' + $.serviceOptions.validPrevImgClass + '" src="' + e.target.result + '">');
                                 } else {
-                                    object.siblings('.' + $.validOptions.imagePrevClass).addClass($.serviceOptions.validPrevImgClass).attr("src", e.target.result).show()
+                                    object.siblings('.' + this.validOptions.imagePrevClass).addClass($.serviceOptions.validPrevImgClass).attr("src", e.target.result).show()
                                 }
                             } else {
                                 $(prev).attr("src", e.target.result).show()
@@ -632,17 +669,17 @@ var solutions = s = {
             }
         }
     },
-    clearPreview: function (object, name_container) {
-        if (name_container && $.validOptions.old_file_name)
+    clearPreview: function(object, name_container) {
+        if (name_container && this.validOptions.old_file_name)
         {
-            $(name_container).text($.validOptions.old_file_name).val($.validOptions.old_file_name)
+            $(name_container).text(this.validOptions.old_file_name).val(this.validOptions.old_file_name)
         }
-        $(object).siblings('.' + $.validOptions.imagePrevClass).removeAttr("src").hide();
+        $(object).siblings('.' + this.validOptions.imagePrevClass).removeAttr("src").hide();
     },
-    nospace: function (str) {
+    nospace: function(str) {
         return str.replace(/\s+/g, '');
     },
-    ajax_validation: function (object) {
+    ajax_validation: function(object) {
         var parse_ajax;
         if (parse_ajax = s.parseJson(object.attr($.serviceOptions.elementAttribute.ajax)))
         {
@@ -653,7 +690,7 @@ var solutions = s = {
                 url: typeof (parse_ajax.url) != 'undefined' ? parse_ajax.url : '/',
                 dataType: 'json',
                 async: false,
-                success: function (data) {
+                success: function(data) {
                     if (data.error)
                     {
                         s.setError(object, 'ajax', data.error);
@@ -661,50 +698,7 @@ var solutions = s = {
                 }
             })
         }
-    }
-};
-/*
- * Remove class error from elements
- */
-$(document).on('click focus change', '.' + $.validOptions.elementClass.required, function () {
-    if ($(this).hasClass($.serviceOptions.errorClass) && $(this).attr('type') != 'file')
-    {
-        if ($(this).hasClass('selectbox'))
-        {
-            $('#sbHolder_' + $(this).attr('sb')).removeClass($.serviceOptions.errorClass);
-            $(this).removeClass($.serviceOptions.errorClass);
-        } else {
-            if ($(this).hasClass($.validOptions.elementClass.pass) && $(this).hasClass($.validOptions.elementClass.pass_again))
-            {
-                $(this).removeClass($.serviceOptions.errorClass).val('').siblings('.message').remove();
-            } else {
-                if ($.validOptions.type == 'field')
-                {
-                    $(this).removeClass($.serviceOptions.errorClass).val('');
-                } else if ($.validOptions.type == 'underfield')
-                {
-                    $(this).removeClass($.serviceOptions.errorClass).siblings('.message').remove();
-                }
-
-            }
-        }
-    }
-})
-$(document).on('keyup change', '.'+$.validOptions.elementClass.required+' .' + $.validOptions.elementClass.number, function () {
-    if ($.validOptions.numberFormat)
-    { 
-        var num = '';
-        var k = -1;
-        var value = s.nospace($(this).val());
-        for (var i = value.length; i >= 0; i--)
-        {
-            num = value[i] + (k % $.validOptions.numberFormat == 0 ? ' ' : '') + num;
-            k++;
-        }
-        $(this).val(num)
-    }
-    //console.log($(this).val());
-    return s.notNumber($(this), 11);
-})
+    },
+}
 
 
