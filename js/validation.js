@@ -86,6 +86,7 @@ $.serviceOptions = {
     type: ['field', 'popup', 'underfield'],
     actionsType: ['submit', 'click', 'change', 'select'],
     keyup_time: 300,
+    valid_date_name: 'data-id',
     criticalError: {
         bad_action: 'This action type is not available',
         bad_element: 'This element is not avalible',
@@ -106,92 +107,92 @@ $.fn.clear_form = function() {
 $.fn.validation = function(params)
 {
     if (typeof params == "object" && !params.length) {
-        var service_error = [];
-        var form = $(this);
-        var s = new solutions.init(form, params, function(s) {
-            if (s.validOptions.action.type != 'keyup')
-            {
-                $(document).on(s.validOptions.action.type, '#' + s.validOptions.action.on, function(e) {
-
-                    if ($(this).hasClass('no_valid'))
-                    {
-                        return true;
-                    } else {
-                        e.preventDefault();
-                        s.isError = 0;
-
-                        for (var el in s.fields)
-                        {
-                            s.validation(s.fields[el], function() {
-                            });
-                        }
-                        if (typeof (params.success) === 'function' && s.isError == 0) {
-                            //success request 
-                            s.success(s.validOptions, function(request) {
-                                params.success(true);
-                            });
-                        } else {
-                            if (s.validOptions.scroll)
-                            {
-                                s.scrollToElement('.' + $.serviceOptions.errorClass + ':first');
-                            }
-                        }
-                    }
-                });
-            }
-            /*
-             * Remove class error from elements
-             */
-            $(document).on('click focus change', '#' + s.form_id + ' .' + s.validOptions.elementClass.required, function(e) {
-                //console.log(e.type, this.tagName)
-                if (e.type == 'change' && this.tagName == 'SELECT')
-                {
-
-                }
-                if ($(this).hasClass($.serviceOptions.errorClass) && $(this).attr('type') != 'file')
-                {
-                    if ($(this).hasClass(s.validOptions.elementClass.pass) || $(this).hasClass(s.validOptions.elementClass.pass_again))
-                    {
-                        $(this).removeClass($.serviceOptions.errorClass).val('').siblings('.message').remove();
-                    } else {
-
-                        if (s.validOptions.type == 'field')
-                        {
-                            $(this).removeClass($.serviceOptions.errorClass).val('');
-                        } else if (s.validOptions.type == 'underfield')
-                        {
-                            $(this).removeClass($.serviceOptions.errorClass).siblings('.message').remove();
-                        }
-                    }
-
-                }
-            })
-            $(document).on('keyup  change', '#' + this.form_id + ' .' + s.validOptions.elementClass.required + ' .' + s.validOptions.elementClass.number, function() {
-                if (s.validOptions.numberFormat)
-                {
-                    var num = '';
-                    var k = -1;
-                    var value = s.nospace($(this).val());
-                    for (var i = value.length; i >= 0; i--)
-                    {
-                        num = value[i] + (k % s.validOptions.numberFormat == 0 ? ' ' : '') + num;
-                        k++;
-                    }
-                    $(this).val(num)
-                }
-                return s.notNumber($(this), 11);
-            })
-
-        });
+        var s = new solutions.init($(this), params);
+        console.log(s);
+        /*  
+         
+         , function (s) {
+         if (s.validOptions.action.type != 'keyup')
+         {
+         $(document).on(s.validOptions.action.type, '#' + s.validOptions.action.on, function (e) {
+         
+         if ($(this).hasClass('no_valid'))
+         {
+         return true;
+         } else {
+         e.preventDefault();
+         s.isError = 0;
+         
+         for (var el in s.fields)
+         {
+         s.validation(s.fields[el], function () {
+         });
+         }
+         if (typeof (params.success) === 'function' && s.isError == 0) {
+         //success request 
+         s.success(s.validOptions, function (request) {
+         params.success(true);
+         });
+         } else {
+         if (s.validOptions.scroll)
+         {
+         s.scrollToElement('.' + $.serviceOptions.errorClass + ':first');
+         }
+         }
+         }
+         });
+         }
+         
+         $(document).on('click focus change', '#' + s.form_id + ' .' + s.validOptions.elementClass.required, function (e) {
+         //console.log(e.type, this.tagName)
+         if (e.type == 'change' && this.tagName == 'SELECT')
+         {
+         
+         }
+         if ($(this).hasClass($.serviceOptions.errorClass) && $(this).attr('type') != 'file')
+         {
+         if ($(this).hasClass(s.validOptions.elementClass.pass) || $(this).hasClass(s.validOptions.elementClass.pass_again))
+         {
+         $(this).removeClass($.serviceOptions.errorClass).val('').siblings('.message').remove();
+         } else {
+         
+         if (s.validOptions.type == 'field')
+         {
+         $(this).removeClass($.serviceOptions.errorClass).val('');
+         } else if (s.validOptions.type == 'underfield')
+         {
+         //    $(this).removeClass($.serviceOptions.errorClass).siblings('.message').remove();
+         }
+         }
+         
+         }
+         })
+         $(document).on('keyup  change', '#' + this.form_id + ' .' + s.validOptions.elementClass.required + ' .' + s.validOptions.elementClass.number, function () {
+         if (s.validOptions.numberFormat)
+         {
+         var num = '';
+         var k = -1;
+         var value = s.nospace($(this).val());
+         for (var i = value.length; i >= 0; i--)
+         {
+         num = value[i] + (k % s.validOptions.numberFormat == 0 ? ' ' : '') + num;
+         k++;
+         }
+         $(this).val(num)
+         }
+         return s.notNumber($(this), 11);
+         })
+         
+         });*/
     }
 };
 
 var solutions = s = {
-    init: function(o, params, feedback) {
-        this.form_id = o.attr('id') ? o.attr('id') : undefined;
-        this.form_class = o.attr('class') ? o.attr('class') : undefined;
+    init: function(o, params) {
+        this.form_identity = uniqID.get(o[0]);
+        //this.form_class = o.attr('class') ? o.attr('class') : undefined;
         this.validOptions = Object.assign({}, $.validOptions);
-        this.params = params;
+        this.funtions = this.getFunctions(params);
         if (typeof (params.lang) != 'undefined')
         {
             this.validOptions.lang = params.lang;
@@ -231,6 +232,14 @@ var solutions = s = {
         {
             this.validOptions.type = params.type;
         }
+        //console.log(document.querySelector('['+$.serviceOptions.valid_date_name + '="'+this.form_identity+'"] .'+this.validOptions.elementClass.required));
+        var elements = $('[' + $.serviceOptions.valid_date_name + '="' + this.form_identity + '"] .' + this.validOptions.elementClass.required),
+                length = elements.length;
+        for (var index = 0; index < length; index++) {
+            var element_id = uniqID.get(elements[index], 'el_');
+            
+        }
+        return this;
         this.validOptions['params'] = this.params
         $.formsOptions[this.form_id] = this.validOptions;
         var count = 0,
@@ -239,8 +248,10 @@ var solutions = s = {
                 solutions = this,
                 id = '',
                 key_up_timer = false
+
         $('#' + this.form_id + ' .' + this.validOptions.elementClass.required).each(function(e)
         {
+            //this.validOptions
             if ($(this).attr('id'))
             {
                 id = $(this).attr('id');
@@ -269,11 +280,13 @@ var solutions = s = {
                     if (i == 'ajax')
                     {
                         $(document).on('change', '#' + $(this).attr('id'), function(e) {
-
-                            solutions.form_id = $(this).parents('form').attr('id') ? $(this).parents('form').attr('id') : undefined;
-                            solutions.object = $(this);
-                            solutions.validOptions = $.formsOptions[solutions.form_id];
-                            var error = solutions.ajax_validation($(this), function(error, object) {
+                            //document.querySelector('#' + solutions.form_id + ' #' + id).addEventListener('change', function () {
+                            solutions.ajax_validation($(this), function(error, object) {
+                                solutions.sendFeedback(object, error);
+                                if (error)
+                                {
+                                    error = solutions.setError(object, 'ajax', error);
+                                }
                                 solutions.isGroupError[object.attr("id")] = error;
                                 if (solutions.checkOnError()) {
                                     solutions.sendSuccess();
@@ -290,13 +303,24 @@ var solutions = s = {
                 }
             }
             if (validOptions.action.type == 'keyup') {
-                solutions.isGroupError[id] = 1;
+                if ($(this).val())
+                {
+                    solutions.validation(fields[id], function(error, object) {
+                        solutions.isGroupError[id] = error;
+                        if (solutions.checkOnError()) {
+                            solutions.sendSuccess();
+                        } else {
+                            solutions.sendError();
+                        }
+                    });
+                } else {
+                    solutions.isGroupError[id] = 1;
+                }
                 if (this.tagName == 'SELECT') {
                     var action = 'change';
                 } else {
                     var action = 'keyup';
                 }
-
                 document.querySelector('#' + solutions.form_id + ' #' + id).addEventListener(action, function() {
                     var this_id = this.getAttribute("id");
                     clearTimeout(key_up_timer)
@@ -339,6 +363,9 @@ solutions.init.prototype = {
     form_class: '',
     fields: {},
     validOptions: {},
+    setFields: function() {
+
+    },
     checkOnError: function() {
         for (var i in this.isGroupError) {
             if (this.isGroupError[i]) {
@@ -346,6 +373,14 @@ solutions.init.prototype = {
             }
         }
         return true;
+    },
+    getFunctions: function(params) {
+        var functions = {};
+        for (var el in params) {
+            if (typeof params[el] === 'function')
+                functions[el] = params;
+        }
+        return functions;
     },
     sendSuccess: function() {
         if (typeof (this.validOptions.params.success) === 'function') {
@@ -365,6 +400,12 @@ solutions.init.prototype = {
             this.validOptions.params.error(this.validOptions.params, function(request) {
                 this.validOptions.params.error(true);
             });
+        }
+    },
+    sendFeedback: function(object, error) {
+        if (typeof (this.validOptions.params[object.attr('id')]) === 'function') {
+            //success request 
+            this.validOptions.params[object.attr('id')](error, object);
         }
     },
     /**
@@ -427,7 +468,6 @@ solutions.init.prototype = {
             } else {
                 var message = this.validOptions.translation[this.validOptions.lang][error].replace("{0}", num);
             }
-            console.log(element)
             if (this.validOptions.type == 'field' && element.attr('type') != 'file')
             {
                 element.addClass($.serviceOptions.errorClass).val(message);
@@ -633,13 +673,17 @@ solutions.init.prototype = {
                 data: data,
                 url: typeof (parse_ajax.url) != 'undefined' ? parse_ajax.url : '/',
                 dataType: 'json',
-                // async: false,
                 success: function(data) {
                     if (data.error)
                     {
-                        return callback(data.error);
+                        return callback(data.error, object);
                     } else {
-                        return callback(false);
+                        return callback(false, object);
+                    }
+                },
+                complete: function(data) {
+                    if (data.status == 200 && data.responseJSON == undefined) {
+                        return callback(false, object);
                     }
                 }
             })
@@ -784,4 +828,18 @@ solutions.init.prototype = {
     }
 }
 
-
+var uniqID = {
+    counter: 1,
+    get: function(object, prefix) {
+        if (!prefix) {
+            prefix = "form_";
+        }
+        var id = prefix + "" + uniqID.counter++;
+        if ($('[' + $.serviceOptions.valid_date_name + '="' + id + '"]').length == 0) {
+            object.setAttribute($.serviceOptions.valid_date_name, id);                
+            return id;
+        } else {
+            return uniqID.get()
+        }
+    }
+}

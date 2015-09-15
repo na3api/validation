@@ -81,7 +81,7 @@
             <div class="row">
                 <div class="span12">
                     <p class="lead">Form on keyup action</p>
-                    <form class="form-horizontal" id="function3" action="" method="post">
+                    <form class="form-horizontal form" id="function3" action="" method="post">
                         <div class="control-group">
                             <label class="control-label" for="phone">Name</label>
                             <div class="controls">
@@ -161,7 +161,7 @@
                     console.log('request____');
                 },
             });
-            $('#function3').validation({
+            $('.form').validation({
                 type: 'underfield',
                 action: 'keyup',
                 success: function(request) {
