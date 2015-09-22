@@ -108,7 +108,7 @@ $.fn.validation = function(params)
 {
     if (typeof params == "object" && !params.length) {
         var s = new solutions.init($(this), params);
-        console.log(s);
+        //console.log(s);
         /*  
          
          , function (s) {
@@ -193,6 +193,7 @@ var solutions = s = {
         //this.form_class = o.attr('class') ? o.attr('class') : undefined;
         this.validOptions = Object.assign({}, $.validOptions);
         this.funtions = this.getFunctions(params);
+        console.log(params);
         if (typeof (params.lang) != 'undefined')
         {
             this.validOptions.lang = params.lang;
@@ -232,14 +233,24 @@ var solutions = s = {
         {
             this.validOptions.type = params.type;
         }
-        //console.log(document.querySelector('['+$.serviceOptions.valid_date_name + '="'+this.form_identity+'"] .'+this.validOptions.elementClass.required));
-        var elements = $('[' + $.serviceOptions.valid_date_name + '="' + this.form_identity + '"] .' + this.validOptions.elementClass.required),
-                length = elements.length;
-        for (var index = 0; index < length; index++) {
-            var element_id = uniqID.get(elements[index], 'el_');
+        if( typeof params.fields != 'undefined'){
             
         }
+        /* get field parametrs */
+        var elements = $('[' + $.serviceOptions.valid_date_name + '="' + this.form_identity + '"] .' + this.validOptions.elementClass.required),
+                length = elements.length,
+                fields = {};
+        for (var index = 0; index < length; index++) {
+            var element_id = uniqID.get(elements[index], 'el_');
+            fields[element_id] = {
+                object    :  elements[index],
+                fields    :  this.getClasses(elements[index])
+            };
+        }   
+        this.validFields = fields;
         return this;
+        
+        
         this.validOptions['params'] = this.params
         $.formsOptions[this.form_id] = this.validOptions;
         var count = 0,
@@ -361,10 +372,26 @@ solutions.init.prototype = {
     isGroupError: {},
     form_id: '',
     form_class: '',
-    fields: {},
+    validFields: {},
     validOptions: {},
-    setFields: function() {
-
+    getAttributes: function(object) {
+        var correct_attr = [];
+        for (var a in $.serviceOptions.elementAttribute) {
+            if (attribute = object.getAttribute($.serviceOptions.elementAttribute[a])) {
+                correct_attr[a] = attribute;
+            }
+        }
+        return correct_attr;
+    },
+    getClasses: function(object) {
+        var classes = object.getAttribute('class'),
+            correct_class = [];
+        for (var c in this.validOptions.elementClass) {
+            if (classes.search(this.validOptions.elementClass[c]) >= 0) {
+                correct_class.push(this.validOptions.elementClass[c]);
+            }
+        }
+        return correct_class;
     },
     checkOnError: function() {
         for (var i in this.isGroupError) {
@@ -836,7 +863,7 @@ var uniqID = {
         }
         var id = prefix + "" + uniqID.counter++;
         if ($('[' + $.serviceOptions.valid_date_name + '="' + id + '"]').length == 0) {
-            object.setAttribute($.serviceOptions.valid_date_name, id);                
+            object.setAttribute($.serviceOptions.valid_date_name, id);
             return id;
         } else {
             return uniqID.get()

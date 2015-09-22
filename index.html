@@ -22,8 +22,8 @@
         <link href="css/bootstrap-responsive.min.css" rel="stylesheet">
         <!-- JQUERY FROM CDN -->
         <!-- ========================================================= -->
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-        <link href="http://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet" type="text/css">
+        <script src="js/jquery-1.11.3.min.js"></script>
+      <!--  <link href="http://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet" type="text/css">-->
         <script src="js/validation.js"></script>
         <script src="js/bootstrap.min.js"></script>
 
@@ -126,7 +126,7 @@
                         <div class="control-group">
                             <label class="control-label" for="inputEmail">Name</label>
                             <div class="controls">
-                                <input type="text" class="required string" id="inputName" placeholder="Name">
+                                <input type="text" class="required string" data-max="12" data-min="2" name="inputName" placeholder="Name">
                             </div>
                         </div>
                         <div class="control-group">
@@ -157,6 +157,27 @@
             $('#function2').validation({
                 lang: 'ru',
                 type: 'field',
+                fields:{
+                    inputName : {
+                        required:{
+                            message:"is required",
+                            required: true
+                        },
+                        email:{
+                            message:"Email field not correct"
+                        },
+                        max: 12,
+                        min: {
+                            value:2,
+                            message:" Must be more 2"
+                        },  
+                        in:"1-23",                      
+                        regexp:{
+                            value: /^[a-zA-Z0-9_\.]+$/,
+                            message: 'Regular express'
+                        }
+                    }
+                },
                 success: function(request) {
                     console.log('request____');
                 },
